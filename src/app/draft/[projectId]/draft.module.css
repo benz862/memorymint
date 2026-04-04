@@ -1,0 +1,211 @@
+.editorWrap {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+/* ── To / From name fields ─────────────────────────── */
+.nameFields {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+  flex-wrap: wrap;
+}
+
+.nameField {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 160px;
+}
+
+.nameLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.nameInput {
+  flex: 1;
+  padding: 0.4rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--foreground);
+  transition: border-color 0.15s ease;
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ── Toolbar ───────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 0.35rem;
+}
+
+.toolBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid transparent !important;
+  border-radius: var(--radius-sm);
+  background: transparent !important;
+  font-size: 0.95rem;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0 !important;
+  font-family: inherit;
+}
+
+.toolBtn:hover {
+  border-color: var(--border) !important;
+  background: var(--muted) !important;
+}
+
+.toolBtnActive {
+  border-color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+  color: var(--primary);
+}
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 1rem !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--radius-full);
+  background: transparent !important;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.downloadBtn:hover {
+  border-color: var(--primary) !important;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, transparent) !important;
+}
+
+/* ── Editor area ───────────────────────────────────── */
+.editor {
+  min-height: 320px;
+  padding: 2rem 2.5rem;
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  line-height: 1.9;
+  color: var(--foreground);
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+/* ── Footer ─────────────────────────────────────────── */
+.editorFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.wordCount {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.footerActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btnBack {
+  background: transparent !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1.25rem !important;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.btnBack:hover {
+  color: var(--foreground);
+  border-color: var(--foreground) !important;
+}
+
+.btnApprove {
+  background: linear-gradient(135deg, var(--primary) 0%, #3aaf8e 100%) !important;
+  border: none !important;
+  border-radius: var(--radius-full);
+  padding: 0.7rem 1.75rem !important;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 2px 10px rgba(79, 195, 161, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btnApprove:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(79, 195, 161, 0.4);
+}
+
+.btnApprove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}

@@ -1,65 +1,159 @@
-import Image from "next/image";
+import Link from "next/link";
+import styles from "./page.module.css";
+import { Sparkles, FileText, Heart, Images } from "lucide-react";
+import prisma from "@/lib/db";
+import Logo from "@/components/Logo";
+import CatalogueRotator from "@/components/CatalogueRotator";
 
-export default function Home() {
+/** Fisher-Yates shuffle (server-side, runs fresh each request) */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export default async function Home() {
+  // Fetch a larger pool and shuffle so the rotator starts at a random point every load
+  const allPreviewCards = await prisma.designedCard.findMany({
+    where: { is_active: true },
+    select: { id: true, name: true, slug: true, preview_thumbnail_url: true },
+  });
+  const cataloguePool = shuffle(allPreviewCards);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <>
+      <nav className={styles.nav}>
+        <Logo height={85} />
+        <div>
+          <Link href="/create" className="btn-primary">
+            Create Your Card
+          </Link>
+        </div>
+      </nav>
+
+      <main>
+        <section className={styles.hero}>
+          <h1 className={styles.title}>
+            Turn your memories into a card worth keeping.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className={styles.subtitle}>
+            Enter the moments, memories, and feelings that matter most. We’ll help
+            shape them into a heartfelt message and place it inside a beautiful,
+            print-ready card.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <div className={styles.actions}>
+            <Link href="/create" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+              Create My Card
+            </Link>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.features}>
+            <div className={styles.feature}>
+              <div className={styles.featureIcon}>
+                <Heart color="var(--primary)" size={32} />
+              </div>
+              <h3 className={styles.featureTitle}>Guided by You</h3>
+              <p className={styles.featureDesc}>
+                Answer a few questions about your favorite moments. We never invent facts—only beautifully structure yours.
+              </p>
+            </div>
+            <div className={styles.feature}>
+              <div className={styles.featureIcon}>
+                <Sparkles color="var(--primary)" size={32} />
+              </div>
+              <h3 className={styles.featureTitle}>AI-Crafted Message</h3>
+              <p className={styles.featureDesc}>
+                Our engine carefully forms a heartfelt, intimate message perfectly tailored to the feelings you want to share.
+              </p>
+            </div>
+            <div className={styles.feature}>
+              <div className={styles.featureIcon}>
+                <FileText color="var(--primary)" size={32} />
+              </div>
+              <h3 className={styles.featureTitle}>Elegant Design</h3>
+              <p className={styles.featureDesc}>
+                Select from beautiful romantic templates and handwritten fonts. You can even upload your favorite photo.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Free message callout ─────────────────────────── */}
+        <section className={styles.freeCallout}>
+          <div className={styles.freeCalloutInner}>
+            <span className={styles.freeCalloutBadge}>100% Free</span>
+            <h2 className={styles.freeCalloutTitle}>Writing your message costs nothing.</h2>
+            <p className={styles.freeCalloutBody}>
+              Craft the perfect heartfelt message — guided by your memories — completely free, no card
+              required. Only when you love what you see and want to place it inside a beautifully
+              designed card do you pay. Simple as that.
+            </p>
+          </div>
+        </section>
+
+        {/* ── Catalogue Promo ────────────────────────────── */}
+        <section className={styles.catalogueSection}>
+          <h2 className={styles.catalogueSectionTitle}>Love a card we&apos;ve already designed?</h2>
+          <p className={styles.catalogueSectionSub}>
+            Browse our collection of pre-designed cards. Choose one you love, add your own inside
+            photo and personal message, and download a print-ready PDF — all four panels,
+            ready to fold.
+          </p>
+
+          {cataloguePool.length > 0 && (
+            <CatalogueRotator cards={cataloguePool} perPage={3} />
+          )}
+
+          <Link href="/catalogue" className="btn-primary" style={{ padding: "0.85rem 2rem" }}>
+            <Images size={16} style={{ marginRight: "0.5rem" }} />
+            Browse All Cards
+          </Link>
+        </section>
+
+        <section className={styles.pricing}>
+
+          <h2 className={styles.title} style={{ fontSize: '2.5rem' }}>Simple, Honest Pricing</h2>
+          <p className={styles.subtitle}>
+            Writing &amp; personalizing your message is always free. Pay only when you&apos;re ready
+            to download a print-ready card PDF.
+          </p>
+
+          <div className={styles.pricingCards}>
+            <div className={styles.pricingCard}>
+              <h3 className={styles.priceTitle}>4x6 Card</h3>
+              <div className={styles.priceAmount}>$3.99</div>
+              <p style={{ color: 'var(--muted-foreground)', marginBottom: '2rem' }}>
+                Print-ready PDF formatted for standard 4x6 greeting card size.
+              </p>
+              <Link href="/create" className="btn-secondary" style={{ width: '100%' }}>
+                Start Creating
+              </Link>
+            </div>
+            
+            <div className={styles.pricingCard}>
+              <h3 className={styles.priceTitle}>5x7 Card</h3>
+              <div className={styles.priceAmount}>$5.99</div>
+              <p style={{ color: 'var(--muted-foreground)', marginBottom: '2rem' }}>
+                Print-ready PDF formatted for premium 5x7 greeting card size.
+              </p>
+              <Link href="/create" className="btn-primary" style={{ width: '100%' }}>
+                Start Creating
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
-    </div>
+
+      <footer className={styles.footer}>
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}><Logo height={85} linked={false} /></div>
+        <p>&copy; {new Date().getFullYear()} MemoryMint. All rights reserved.</p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Designed for moments that matter.</p>
+      </footer>
+    </>
   );
 }

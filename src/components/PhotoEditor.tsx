@@ -1,0 +1,594 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+
+import styles from "@/app/catalogue/catalogue.module.css";
+
+// ── Types ────────────────────────────────────────────────────
+export interface CaptionStyle {
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  align: "left" | "center" | "right";
+  bold: boolean;
+  italic: boolean;
+}
+
+export const DEFAULT_CAPTION_STYLE: CaptionStyle = {
+  text: "",
+  fontFamily: "Georgia, serif",
+  fontSize: 13,
+  color: "#6B6360",
+  align: "center",
+  bold: false,
+  italic: true,
+};
+
+// ── Font Options ─────────────────────────────────────────────
+const FONTS = [
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Playfair", value: "'Playfair Display', Georgia, serif" },
+  { label: "Dancing Script", value: "'Dancing Script', cursive" },
+  { label: "Inter", value: "'Inter', sans-serif" },
+  { label: "Courier", value: "'Courier New', monospace" },
+  { label: "Arial", value: "Arial, sans-serif" },
+];
+
+// ── Color Swatches ───────────────────────────────────────────
+const COLORS = [
+  "#6B6360", // warm gray (default)
+  "#2C2C2C", // near black
+  "#8B5E52", // warm brown
+  "#4A7C6E", // forest green
+  "#5B6E8A", // slate blue
+  "#9B5E7A", // dusty rose
+  "#C8973A", // gold
+  "#FFFFFF", // white
+];
+
+// ── Crop State ───────────────────────────────────────────────
+interface CropRect {
+  x: number; // 0–1 (fraction of display canvas)
+  y: number;
+  w: number;
+  h: number;
+}
+
+// ── Props ────────────────────────────────────────────────────
+interface PhotoEditorProps {
+  imageSrc: string; // original data URL
+  initialCaption?: CaptionStyle;
+  onConfirm: (croppedDataUrl: string, captionStyle: CaptionStyle) => void;
+  onCancel: () => void;
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v));
+}
+
+export default function PhotoEditor({
+  imageSrc,
+  initialCaption,
+  onConfirm,
+  onCancel,
+}: PhotoEditorProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // Caption state
+  const [caption, setCaption] = useState<CaptionStyle>(
+    initialCaption || DEFAULT_CAPTION_STYLE
+  );
+
+  // Zoom & crop — initial crop locked to polaroid photo window ratio
+  const [zoom, setZoom] = useState(1);
+  const [crop, setCrop] = useState<CropRect>(() => {
+    // Ratio locked: h_frac = w_frac * CANVAS_W / (CANVAS_H * PHOTO_AR)
+    // Use PHOTO_AR inline since we can’t reference the const inside the function body yet
+    const ar = (0.89 * (6442 / 7997)) / 0.75;
+    const h = 0.80;
+    const w = (h * 360 * ar) / 480; // w_frac matching the ratio
+    return { x: (1 - w) / 2, y: 0.10, w, h };
+  });
+
+  // Drag state (for crop box)
+  const dragRef = useRef<{
+    handle: "move" | "nw" | "ne" | "sw" | "se" | null;
+    startX: number;
+    startY: number;
+    startCrop: CropRect;
+  } | null>(null);
+
+  const HANDLE_SIZE = 10; // px radius for corner handles
+
+  // ── Polaroid photo window aspect ratio ────────────────────
+  // Matches the PDF constants: PW=0.89, PH=0.70, frame W/H = 6442/7997
+  const CANVAS_W = 480;
+  const CANVAS_H = 360;
+  const PHOTO_AR = (0.89 * (6442 / 7997)) / 0.75; // ≈ 0.956 W:H
+  // Convert normalised crop fractions (relative to canvas) ↔ locked aspect ratio
+  const hFromW = (w: number) => (w * CANVAS_W) / (CANVAS_H * PHOTO_AR);
+  const wFromH = (h: number) => (h * CANVAS_H * PHOTO_AR) / CANVAS_W;
+
+  // ── Draw canvas ───────────────────────────────────────────
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Clear
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw image scaled (with zoom applied around center)
+    const scaledW = img.naturalWidth * zoom;
+    const scaledH = img.naturalHeight * zoom;
+    const offsetX = (W - scaledW) / 2;
+    const offsetY = (H - scaledH) / 2;
+
+    ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+
+    // Dim areas outside crop
+    const cx = crop.x * W;
+    const cy = crop.y * H;
+    const cw = crop.w * W;
+    const ch = crop.h * H;
+
+    ctx.fillStyle = "rgba(0,0,0,0.48)";
+    // Top
+    ctx.fillRect(0, 0, W, cy);
+    // Bottom
+    ctx.fillRect(0, cy + ch, W, H - cy - ch);
+    // Left
+    ctx.fillRect(0, cy, cx, ch);
+    // Right
+    ctx.fillRect(cx + cw, cy, W - cx - cw, ch);
+
+    // Crop border
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx, cy, cw, ch);
+
+    // Rule-of-thirds grid
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 0.8;
+    for (let i = 1; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cx + (cw * i) / 3, cy);
+      ctx.lineTo(cx + (cw * i) / 3, cy + ch);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + (ch * i) / 3);
+      ctx.lineTo(cx + cw, cy + (ch * i) / 3);
+      ctx.stroke();
+    }
+
+    // Corner handles
+    const handles: [number, number][] = [
+      [cx, cy],
+      [cx + cw, cy],
+      [cx, cy + ch],
+      [cx + cw, cy + ch],
+    ];
+    for (const [hx, hy] of handles) {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.beginPath();
+      ctx.arc(hx, hy, HANDLE_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.4)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }, [zoom, crop]);
+
+  // Load image once
+  useEffect(() => {
+    const img = new window.Image();
+    img.onload = () => {
+      imgRef.current = img;
+      draw();
+    };
+    img.src = imageSrc;
+  }, [imageSrc, draw]);
+
+  // Redraw on state change
+  useEffect(() => {
+    draw();
+  }, [draw]);
+
+  // ── Pointer Events ───────────────────────────────────────
+  const getHandle = (
+    px: number,
+    py: number,
+    W: number,
+    H: number
+  ): "move" | "nw" | "ne" | "sw" | "se" | null => {
+    const cx = crop.x * W;
+    const cy = crop.y * H;
+    const cw = crop.w * W;
+    const ch = crop.h * H;
+    const hs = HANDLE_SIZE;
+
+    if (Math.abs(px - cx) < hs && Math.abs(py - cy) < hs) return "nw";
+    if (Math.abs(px - (cx + cw)) < hs && Math.abs(py - cy) < hs) return "ne";
+    if (Math.abs(px - cx) < hs && Math.abs(py - (cy + ch)) < hs) return "sw";
+    if (Math.abs(px - (cx + cw)) < hs && Math.abs(py - (cy + ch)) < hs) return "se";
+    if (px > cx && px < cx + cw && py > cy && py < cy + ch) return "move";
+    return null;
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const handle = getHandle(px, py, canvas.width, canvas.height);
+    if (!handle) return;
+    canvas.setPointerCapture(e.pointerId);
+    dragRef.current = { handle, startX: px, startY: py, startCrop: { ...crop } };
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!dragRef.current) return;
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const dx = (px - dragRef.current.startX) / W;
+    const dy = (py - dragRef.current.startY) / H;
+    const sc = dragRef.current.startCrop;
+
+    const MIN = 0.1;
+    let { x, y, w, h } = sc;
+
+    // All corner drags maintain the polaroid photo window aspect ratio
+    switch (dragRef.current.handle) {
+      case "move":
+        x = clamp(sc.x + dx, 0, 1 - sc.w);
+        y = clamp(sc.y + dy, 0, 1 - sc.h);
+        break;
+      case "se": {
+        w = clamp(sc.w + dx, MIN, 1 - sc.x);
+        h = hFromW(w);
+        if (sc.y + h > 1) { h = 1 - sc.y; w = wFromH(h); }
+        break;
+      }
+      case "sw": {
+        const right = sc.x + sc.w;
+        x = clamp(sc.x + dx, 0, right - MIN);
+        w = right - x;
+        h = hFromW(w);
+        if (sc.y + h > 1) { h = 1 - sc.y; w = wFromH(h); x = right - w; }
+        break;
+      }
+      case "ne": {
+        const bottom = sc.y + sc.h;
+        w = clamp(sc.w + dx, MIN, 1 - sc.x);
+        h = hFromW(w);
+        y = bottom - h;
+        if (y < 0) { y = 0; h = bottom; w = wFromH(h); }
+        break;
+      }
+      case "nw": {
+        const right = sc.x + sc.w;
+        const bottom = sc.y + sc.h;
+        x = clamp(sc.x + dx, 0, right - MIN);
+        w = right - x;
+        h = hFromW(w);
+        y = bottom - h;
+        if (y < 0) { y = 0; h = bottom; w = wFromH(h); x = right - w; }
+        break;
+      }
+    }
+
+    setCrop({ x, y, w, h });
+  };
+
+  const onPointerUp = () => {
+    dragRef.current = null;
+  };
+
+  // ── Export cropped image ──────────────────────────────────
+  const exportCropped = (): string => {
+    const canvas = canvasRef.current!;
+    const img = imgRef.current!;
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Map crop fractions back to image pixel coords
+    const scaledW = img.naturalWidth * zoom;
+    const scaledH = img.naturalHeight * zoom;
+    const offsetX = (W - scaledW) / 2;
+    const offsetY = (H - scaledH) / 2;
+
+    const srcX = (crop.x * W - offsetX) / zoom;
+    const srcY = (crop.y * H - offsetY) / zoom;
+    const srcW = (crop.w * W) / zoom;
+    const srcH = (crop.h * H) / zoom;
+
+    const out = document.createElement("canvas");
+    out.width = Math.round(srcW);
+    out.height = Math.round(srcH);
+    const octx = out.getContext("2d")!;
+    octx.drawImage(
+      img,
+      srcX, srcY, srcW, srcH,
+      0, 0, out.width, out.height
+    );
+    return out.toDataURL("image/jpeg", 0.92);
+  };
+
+  const handleConfirm = () => {
+    const croppedUrl = exportCropped();
+    onConfirm(croppedUrl, caption);
+  };
+
+  // ── Polaroid preview ──────────────────────────────────────
+  const polaroidCaptionStyle: React.CSSProperties = {
+    fontFamily: caption.fontFamily,
+    fontSize: `${caption.fontSize}px`,
+    color: caption.color,
+    textAlign: caption.align,
+    fontWeight: caption.bold ? "bold" : "normal",
+    fontStyle: caption.italic ? "italic" : "normal",
+    marginTop: "6px",
+    padding: "0 4px",
+    wordBreak: "break-word",
+    lineHeight: 1.4,
+  };
+
+  const updateCaption = (partial: Partial<CaptionStyle>) =>
+    setCaption((prev) => ({ ...prev, ...partial }));
+
+  return (
+    <div className={styles.editorPanel}>
+      {/* ── Top: Canvas crop area ── */}
+      <div className={styles.editorCropArea}>
+        <canvas
+          ref={canvasRef}
+          width={480}
+          height={360}
+          className={styles.cropCanvas}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          style={{ touchAction: "none" }}
+        />
+
+        {/* Zoom slider */}
+        <div className={styles.zoomRow}>
+          <span className={styles.zoomLabel}>🔍 Zoom</span>
+          <input
+            id="zoom-slider"
+            type="range"
+            min={0.5}
+            max={3}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className={styles.zoomSlider}
+          />
+          <span className={styles.zoomValue}>{zoom.toFixed(1)}×</span>
+        </div>
+
+        {/* Reset crop */}
+        <button
+          className={styles.btnResetCrop}
+          onClick={() => {
+            const ar = (0.89 * (6442 / 7997)) / 0.75;
+            const h = 0.80;
+            const w = (h * 360 * ar) / 480;
+            setCrop({ x: (1 - w) / 2, y: 0.10, w, h });
+            setZoom(1);
+          }}
+        >
+          ↺ Reset
+        </button>
+      </div>
+
+      {/* ── Bottom two columns: Caption controls + live preview ── */}
+      <div className={styles.editorBottom}>
+
+        {/* Caption Controls */}
+        <div className={styles.captionControls}>
+          <div className={styles.captionControlGroup}>
+            <label htmlFor="caption-text" className={styles.captionControlLabel}>Caption text</label>
+            <input
+              id="caption-text"
+              className={styles.input}
+              value={caption.text}
+              maxLength={80}
+              onChange={(e) => updateCaption({ text: e.target.value })}
+              placeholder="e.g. Our trip to Ireland, 2023"
+            />
+            <span className={styles.charCount}>{caption.text.length}/80</span>
+          </div>
+
+          {/* Font */}
+          <div className={styles.captionControlGroup}>
+            <label className={styles.captionControlLabel}>Font</label>
+            <div className={styles.fontGrid}>
+              {FONTS.map((f) => (
+                <button
+                  key={f.value}
+                  className={`${styles.fontChip} ${caption.fontFamily === f.value ? styles.fontChipActive : ""}`}
+                  style={{ fontFamily: f.value }}
+                  onClick={() => updateCaption({ fontFamily: f.value })}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Size */}
+          <div className={styles.captionControlGroup}>
+            <label className={styles.captionControlLabel}>
+              Size: {caption.fontSize}pt
+            </label>
+            <input
+              type="range"
+              min={9}
+              max={22}
+              step={1}
+              value={caption.fontSize}
+              onChange={(e) => updateCaption({ fontSize: Number(e.target.value) })}
+              className={styles.zoomSlider}
+              aria-label="Caption font size"
+            />
+          </div>
+
+          {/* Color */}
+          <div className={styles.captionControlGroup}>
+            <label className={styles.captionControlLabel}>Color</label>
+            <div className={styles.colorRow}>
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  className={`${styles.colorSwatch} ${caption.color === c ? styles.colorSwatchActive : ""}`}
+                  style={{ background: c, border: c === "#FFFFFF" ? "1px solid #ccc" : "none" }}
+                  onClick={() => updateCaption({ color: c })}
+                  title={c}
+                  aria-label={`Color ${c}`}
+                />
+              ))}
+              <input
+                type="color"
+                value={caption.color}
+                onChange={(e) => updateCaption({ color: e.target.value })}
+                className={styles.colorPicker}
+                title="Custom color"
+                aria-label="Custom color picker"
+              />
+            </div>
+          </div>
+
+          {/* Align + Style toggles */}
+          <div className={styles.captionControlGroup}>
+            <label className={styles.captionControlLabel}>Style &amp; Alignment</label>
+            <div className={styles.styleRow}>
+              <button
+                className={`${styles.styleBtn} ${caption.bold ? styles.styleBtnActive : ""}`}
+                onClick={() => updateCaption({ bold: !caption.bold })}
+                style={{ fontWeight: "bold" }}
+                aria-pressed={caption.bold}
+              >B</button>
+              <button
+                className={`${styles.styleBtn} ${caption.italic ? styles.styleBtnActive : ""}`}
+                onClick={() => updateCaption({ italic: !caption.italic })}
+                style={{ fontStyle: "italic" }}
+                aria-pressed={caption.italic}
+              ><em>I</em></button>
+              <span className={styles.styleDivider} />
+              {(["left", "center", "right"] as const).map((a) => (
+                <button
+                  key={a}
+                  className={`${styles.styleBtn} ${caption.align === a ? styles.styleBtnActive : ""}`}
+                  onClick={() => updateCaption({ align: a })}
+                  aria-pressed={caption.align === a}
+                  title={`Align ${a}`}
+                >
+                  {a === "left" ? "⬅" : a === "center" ? "↔" : "➡"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Live Polaroid Preview */}
+        <div className={styles.editorPreviewCol}>
+          <div className={styles.editorPreviewLabel}>Live Preview</div>
+          <div className={styles.polaroidPreviewLarge}>
+            {/* We show the full canvas image cropped via CSS clip */}
+            <div className={styles.polaroidPhotoBox}>
+              {/* Use a separate smaller canvas export preview via an img tag redrawn on each change */}
+              <CropPreviewImg
+                imageSrc={imageSrc}
+                crop={crop}
+                zoom={zoom}
+              />
+            </div>
+            {caption.text && (
+              <div style={polaroidCaptionStyle}>{caption.text}</div>
+            )}
+          </div>
+          <p className={styles.editorPreviewHint}>
+            This is how it will appear inside your card.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Actions ── */}
+      <div className={styles.editorActions}>
+        <button className={styles.btnBack} onClick={onCancel}>
+          ← Change Photo
+        </button>
+        <button className={styles.btnNext} onClick={handleConfirm} id="apply-crop-btn">
+          Apply & Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Small live preview canvas (separate from the main editor) ─
+function CropPreviewImg({
+  imageSrc,
+  crop,
+  zoom,
+}: {
+  imageSrc: string;
+  crop: CropRect;
+  zoom: number;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = ref.current;
+      if (!canvas) return;
+      const W = 200;
+      // Match polaroid photo window ratio: W/H ≈ 1.024
+      const H = Math.round(W / ((0.89 * (6442 / 7997)) / 0.75)); // ≈ 209
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d")!;
+
+      // Source coords relative to natural image (mirroring the main canvas logic)
+      const MAIN_W = 480;
+      const MAIN_H = 360;
+      const scaledW = img.naturalWidth * zoom;
+      const scaledH = img.naturalHeight * zoom;
+      const offsetX = (MAIN_W - scaledW) / 2;
+      const offsetY = (MAIN_H - scaledH) / 2;
+
+      const srcX = (crop.x * MAIN_W - offsetX) / zoom;
+      const srcY = (crop.y * MAIN_H - offsetY) / zoom;
+      const srcW = (crop.w * MAIN_W) / zoom;
+      const srcH = (crop.h * MAIN_H) / zoom;
+
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, W, H);
+    };
+    img.src = imageSrc;
+  }, [imageSrc, crop, zoom]);
+
+  return (
+    <canvas
+      ref={ref}
+      width={200}
+      height={150}
+      style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
+    />
+  );
+}

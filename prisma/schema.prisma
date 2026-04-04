@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  full_name    String?
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  projects     CardProject[]
+  orders       Order[]
+}
+
+model GuestSession {
+  id            String        @id @default(cuid())
+  session_token String        @unique
+  email         String?
+  created_at    DateTime      @default(now())
+  expires_at    DateTime?
+  projects      CardProject[]
+  orders        Order[]
+}
+
+model Theme {
+  id               String            @id @default(cuid())
+  name             String
+  slug             String            @unique
+  description      String?
+  is_active        Boolean           @default(true)
+  sort_order       Int               @default(0)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  subtypes         OccasionSubtype[]
+  templates        Template[]
+  projects         CardProject[]
+}
+
+model OccasionSubtype {
+  id         String        @id @default(cuid())
+  theme_id   String
+  name       String
+  slug       String
+  is_active  Boolean       @default(true)
+  sort_order Int           @default(0)
+  theme      Theme         @relation(fields: [theme_id], references: [id], onDelete: Cascade)
+  projects   CardProject[]
+
+  @@unique([theme_id, slug])
+}
+
+model Template {
+  id                                String        @id @default(cuid())
+  theme_id                          String
+  name                              String
+  slug                              String        @unique
+  size_support_json                 String        // Array of supported sizes, e.g. ["4x6", "5x7"]
+  cover_asset_url                   String
+  inside_left_default_asset_url     String
+  inside_right_background_asset_url String
+  preview_watermark_style           String?
+  is_active                         Boolean       @default(true)
+  sort_order                        Int           @default(0)
+  created_at                        DateTime      @default(now())
+  updated_at                        DateTime      @updatedAt
+  theme                             Theme         @relation(fields: [theme_id], references: [id], onDelete: Cascade)
+  projects                          CardProject[]
+}
+
+model Font {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  font_family   String
+  category      String
+  is_active     Boolean       @default(true)
+  sort_order    Int           @default(0)
+  projects      CardProject[]
+}
+
+model CardProject {
+  id                   String           @id @default(cuid())
+  user_id              String?
+  guest_session_id     String?
+  theme_id             String
+  occasion_subtype_id  String
+  sender_name          String
+  recipient_name       String
+  relationship_label   String?
+  tone                 String
+  desired_length       String
+  memories_json        String
+  qualities_json       String
+  places_json          String
+  inside_jokes_json    String?
+  desired_feeling      String
+  uploaded_image_url   String?
+  generated_text       String?
+  edited_text          String?
+  selected_font_id     String?
+  selected_template_id String?
+  selected_size        String?
+  designed_card_id     String?          // Optional: links to a DesignedCard (catalogue item)
+  inside_photo_url     String?          // Uploaded client photo
+  inside_photo_caption String?          // Optional polaroid-style caption
+  preview_pdf_url      String?
+  final_pdf_url        String?
+  status               String           @default("draft")
+  created_at           DateTime         @default(now())
+  updated_at           DateTime         @updatedAt
+
+  user                 User?            @relation(fields: [user_id], references: [id])
+  guest_session        GuestSession?    @relation(fields: [guest_session_id], references: [id])
+  theme                Theme            @relation(fields: [theme_id], references: [id])
+  occasion_subtype     OccasionSubtype  @relation(fields: [occasion_subtype_id], references: [id])
+  font                 Font?            @relation(fields: [selected_font_id], references: [id])
+  template             Template?        @relation(fields: [selected_template_id], references: [id])
+  designed_card        DesignedCard?    @relation(fields: [designed_card_id], references: [id])
+
+  orders               Order[]
+  downloads            Download[]
+}
+
+model Order {
+  id                  String       @id @default(cuid())
+  user_id             String?
+  guest_session_id    String?
+  card_project_id     String
+  order_number        String       @unique
+  selected_size       String
+  amount              Int          // In cents
+  currency            String       @default("usd")
+  payment_status      String       @default("pending")
+  payment_provider    String       @default("stripe")
+  provider_payment_id String?      @unique
+  purchaser_email     String
+  created_at          DateTime     @default(now())
+  updated_at          DateTime     @updatedAt
+
+  user                User?        @relation(fields: [user_id], references: [id])
+  guest_session       GuestSession?@relation(fields: [guest_session_id], references: [id])
+  card_project        CardProject  @relation(fields: [card_project_id], references: [id])
+  downloads           Download[]
+}
+
+model Download {
+  id                 String       @id @default(cuid())
+  order_id           String
+  card_project_id    String
+  download_url       String
+  expires_at         DateTime?
+  download_count     Int          @default(0)
+  last_downloaded_at DateTime?
+
+  order              Order        @relation(fields: [order_id], references: [id])
+  card_project       CardProject  @relation(fields: [card_project_id], references: [id])
+}
+
+// ============================================
+// Pre-Designed Card Catalogue ("Pick a Card")
+// ============================================
+
+model DesignedCard {
+  id                     String               @id @default(cuid())
+  name                   String               // e.g. "Happy Birthday #017"
+  slug                   String               @unique // URL-safe identifier
+  category               String               // e.g. "birthday", "anniversary"
+  front_image_url        String               // Path to locked front artwork
+  back_image_url         String               // Path to locked back/logo artwork
+  preview_thumbnail_url  String               // Small card thumbnail for catalogue
+  description            String?              // Optional short description
+  is_active              Boolean              @default(true)
+  sort_order             Int                  @default(0)
+  created_at             DateTime             @default(now())
+  updated_at             DateTime             @updatedAt
+
+  orders                 DesignedCardOrder[]
+  card_projects          CardProject[]
+}
+
+model DesignedCardOrder {
+  id                    String       @id @default(cuid())
+  designed_card_id      String
+  inside_photo_url      String?      // Uploaded client photo (nullable if skipped)
+  inside_photo_caption  String?      // Optional polaroid-style caption
+  inside_message        String       // Client-typed message for inside right
+  selected_size         String       // "4x6" or "5x7"
+  order_number          String       @unique
+  amount                Int          // In cents
+  currency              String       @default("usd")
+  payment_status        String       @default("pending")
+  payment_provider      String       @default("stripe")
+  provider_payment_id   String?      @unique
+  purchaser_email       String       @default("guest@example.com")
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
+
+  designed_card         DesignedCard @relation(fields: [designed_card_id], references: [id])
+}

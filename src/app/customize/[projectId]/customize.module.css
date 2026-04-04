@@ -1,0 +1,491 @@
+/* ── Photo editor full-width wrapper ───────────────────────── */
+.editorWrapper {
+  width: 100%;
+}
+
+.editorBack {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  color: var(--muted-foreground);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ── Polaroid caption in card preview ──────────────────────── */
+.polaroidCaption {
+  padding: 4px 6px 2px;
+  font-size: 9px;
+  text-align: center;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* ── Photo done-state row ──────────────────────────────────── */
+.photoDoneRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+}
+
+.btnEditPhoto {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.3rem;
+  text-decoration: underline;
+}
+
+/* ── Overall two-column layout ─────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 3rem;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0 5rem;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Preview column ────────────────────────────────────────── */
+.previewCol {
+  position: sticky;
+  top: 80px;
+}
+
+.previewLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 0.75rem;
+}
+
+/* Card mockup container */
+.cardMockup {
+  border: 2px solid;
+  border-radius: var(--radius-lg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 420px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.cardPanel {
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 380px;
+}
+
+/* ── Polaroid in the card mockup preview ────────────
+   Mimics a real polaroid: white frame, thick bottom strip,
+   layered drop shadow, subtle rotation.                     */
+.polaroidInPreview {
+  background: #ffffff;
+  padding: 7px 7px 28px 7px;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.08),
+    0 6px 18px rgba(0,0,0,0.18),
+    0 16px 32px rgba(0,0,0,0.10);
+  border-radius: 2px;
+  width: 100%;
+  max-width: 160px;
+  transform: rotate(-2deg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.polaroidInPreview:hover {
+  transform: rotate(0deg) scale(1.04) translateY(-3px);
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.10),
+    0 14px 32px rgba(0,0,0,0.22),
+    0 28px 48px rgba(0,0,0,0.12);
+}
+
+.polaroidInPreview img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+/* Photo placeholder (clickable) */
+.photoPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.photoPlaceholder:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.photoPlaceholderIcon {
+  font-size: 2rem;
+}
+
+.photoPlaceholderText {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.changePhotoBtn {
+  font-size: 0.75rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+/* Message text in preview */
+.cardMessageText {
+  font-size: 0.85rem;
+  line-height: 1.75;
+  transition: font-family 0.2s ease, color 0.3s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.cardSignature {
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  text-align: right;
+  transition: font-family 0.2s ease, color 0.3s ease;
+}
+
+.previewNote {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  margin-top: 0.85rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Options column ────────────────────────────────────────── */
+.optionsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.section {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-of-type {
+  border-bottom: none;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 0.35rem;
+}
+
+.optional {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+}
+
+.sectionHint {
+  font-size: 0.83rem;
+  color: var(--muted-foreground);
+  margin-bottom: 0.85rem;
+  line-height: 1.5;
+}
+
+/* ── Photo upload zone ─────────────────────────────────────── */
+.uploadZone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  background: var(--background);
+}
+
+.uploadZone:hover,
+.dragOver {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.uploadZoneSmall {
+  flex-direction: row;
+  justify-content: flex-start;
+  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+}
+
+.uploadThumb {
+  width: 52px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.uploadIcon {
+  font-size: 1.75rem;
+}
+
+.uploadLabel {
+  font-size: 0.88rem;
+  color: var(--muted-foreground);
+}
+
+.uploadHint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.uploadChangeText {
+  font-size: 0.82rem;
+  color: var(--primary);
+}
+
+.removePhotoBtn {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted-foreground);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ── Font picker ───────────────────────────────────────────── */
+.fontGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.fontCard {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--background);
+  transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.fontCard:hover {
+  border-color: var(--primary);
+}
+
+.fontCardActive {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.fontSample {
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.fontName {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans) !important;
+  white-space: nowrap;
+}
+
+/* ── Template colour themes ────────────────────────────────── */
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.templateCard {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.5rem;
+  cursor: pointer;
+  background: var(--background);
+  transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.templateCard:hover {
+  border-color: var(--primary);
+}
+
+.templateCardActive {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.templateSwatch {
+  width: 100%;
+  height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.templateSwatchLine {
+  height: 4px;
+  border-radius: 2px;
+  width: 100%;
+}
+
+.templateName {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+/* ── Size picker ───────────────────────────────────────────── */
+.sizeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.sizeCard {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  cursor: pointer;
+  background: var(--background);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all 0.18s ease;
+}
+
+.sizeCard:hover {
+  border-color: var(--primary);
+}
+
+.sizeCardActive {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.sizeLabel {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.sizePrice {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* ── CTA buttons ───────────────────────────────────────────── */
+.cta {
+  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.btnNext {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease;
+  text-align: center;
+}
+
+.btnNext:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btnNext:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnBack {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.18s ease;
+}
+
+.btnBack:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
