@@ -1,5 +1,16 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# environment — never commit secrets
+.env
+.env*.local
+
+# user uploaded photos (now stored in Supabase Storage)
+/public/uploads/
+
+# sqlite dev database
+prisma/dev.db
+prisma/*.db-journal
+
 # dependencies
 /node_modules
 /.pnp
