@@ -3,27 +3,18 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import prisma from '@/lib/db';
 import { DesignedCardDocument } from '@/components/DesignedCardDocument';
 import React from 'react';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 
-// Reads an image from the filesystem (stored under /public) and returns
-// a base64 data URI that @react-pdf/renderer can embed directly.
-async function imageToBase64(publicRelativePath: string): Promise<string> {
-  // publicRelativePath is like "/cards/birthday-001-front.png"
-  const absPath = join(process.cwd(), 'public', decodeURIComponent(publicRelativePath.replace(/^\//, '')));
-  const buffer = await readFile(absPath);
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Determine MIME type from extension
-  const ext = absPath.split('.').pop()?.toLowerCase() || 'png';
-  const mimeMap: Record<string, string> = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    webp: 'image/webp',
-  };
-  const mime = mimeMap[ext] || 'image/png';
-
-  return `data:${mime};base64,${buffer.toString('base64')}`;
+// Fetches an image by URL and returns a base64 data URI for @react-pdf/renderer.
+// Works for both absolute URLs (Supabase, etc.) and local public/ paths.
+async function imageToBase64(urlOrPath: string): Promise<string> {
+  const url = urlOrPath.startsWith('http') ? urlOrPath : `${BASE_URL}${urlOrPath}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch image: ${url} (${res.status})`);
+  const buffer = await res.arrayBuffer();
+  const mime = res.headers.get('content-type') || 'image/png';
+  return `data:${mime};base64,${Buffer.from(buffer).toString('base64')}`;
 }
 
 export async function GET(
