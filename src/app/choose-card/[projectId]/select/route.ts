@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
+// MUST be force-dynamic — Vercel's edge caches GET redirects, which prevents
+// the DB update from running when a different card is selected.
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ projectId: string }> }
@@ -34,8 +38,10 @@ export async function GET(
       data: { designed_card_id: cardId },
     });
 
-    // Redirect to customization step
-    return NextResponse.redirect(new URL(`/customize/${projectId}`, req.url));
+    // Redirect to customization step — no-store so Vercel never caches this
+    return NextResponse.redirect(new URL(`/customize/${projectId}`, req.url), {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
 
   } catch (err: any) {
     console.error("[select] 500 error:", err?.message ?? err);
