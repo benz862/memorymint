@@ -362,38 +362,56 @@ export const DesignedCardDocument = ({
               }
 
               if (style === 'classic') {
-                // Black-bordered frame, 4:3, drop shadow
                 const fw = panelW - 56; const fh = Math.round(fw * 0.75); const sd = 5;
                 return (
-                  <View style={{ width: fw + sd, height: fh + sd } as any}>
-                    <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
-                    <View style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, backgroundColor: '#111' } as any}>
-                      <Image src={insidePhotoBase64} style={{ margin: 5, width: fw - 10, height: fh - 10, objectFit: 'cover' as any }} />
+                  <View>
+                    <View style={{ width: fw + sd, height: fh + sd } as any}>
+                      <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
+                      <View style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, backgroundColor: '#111' } as any}>
+                        <Image src={insidePhotoBase64} style={{ margin: 5, width: fw - 10, height: fh - 10, objectFit: 'cover' as any }} />
+                      </View>
                     </View>
+                    {captionText ? (
+                      <Text style={{ marginTop: 6, width: fw, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign as any, ...captionPdfFont } as any}>
+                        {captionText}
+                      </Text>
+                    ) : null}
                   </View>
                 );
               }
 
               if (style === 'square') {
-                // Square crop, thin dark border, drop shadow
                 const sz = panelW - 60; const sd = 5;
                 return (
-                  <View style={{ width: sz + sd, height: sz + sd } as any}>
-                    <View style={{ position: 'absolute', top: sd, left: sd, width: sz, height: sz, backgroundColor: shadowClr } as any} />
-                    <View style={{ position: 'absolute', top: 0, left: 0, width: sz, height: sz, backgroundColor: '#1a1a1a' } as any}>
-                      <Image src={insidePhotoBase64} style={{ margin: 3, width: sz - 6, height: sz - 6, objectFit: 'cover' as any }} />
+                  <View>
+                    <View style={{ width: sz + sd, height: sz + sd } as any}>
+                      <View style={{ position: 'absolute', top: sd, left: sd, width: sz, height: sz, backgroundColor: shadowClr } as any} />
+                      <View style={{ position: 'absolute', top: 0, left: 0, width: sz, height: sz, backgroundColor: '#1a1a1a' } as any}>
+                        <Image src={insidePhotoBase64} style={{ margin: 3, width: sz - 6, height: sz - 6, objectFit: 'cover' as any }} />
+                      </View>
                     </View>
+                    {captionText ? (
+                      <Text style={{ marginTop: 6, width: sz, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign as any, ...captionPdfFont } as any}>
+                        {captionText}
+                      </Text>
+                    ) : null}
                   </View>
                 );
               }
 
               if (style === 'float') {
-                // No border, just soft drop shadow
                 const fw = panelW - 56; const fh = Math.round(fw * 0.75); const sd = 7;
                 return (
-                  <View style={{ width: fw + sd, height: fh + sd } as any}>
-                    <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
-                    <Image src={insidePhotoBase64} style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, objectFit: 'cover' as any }} />
+                  <View>
+                    <View style={{ width: fw + sd, height: fh + sd } as any}>
+                      <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
+                      <Image src={insidePhotoBase64} style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, objectFit: 'cover' as any }} />
+                    </View>
+                    {captionText ? (
+                      <Text style={{ marginTop: 6, width: fw, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign as any, ...captionPdfFont } as any}>
+                        {captionText}
+                      </Text>
+                    ) : null}
                   </View>
                 );
               }
@@ -401,7 +419,14 @@ export const DesignedCardDocument = ({
               // 'naked' — raw image, no frame
               const fw2 = panelW - 40; const fh2 = Math.round(fw2 * 0.75);
               return (
-                <Image src={insidePhotoBase64} style={{ width: fw2, height: fh2, objectFit: 'cover' as any }} />
+                <View>
+                  <Image src={insidePhotoBase64} style={{ width: fw2, height: fh2, objectFit: 'cover' as any }} />
+                  {captionText ? (
+                    <Text style={{ marginTop: 6, width: fw2, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign as any, ...captionPdfFont } as any}>
+                      {captionText}
+                    </Text>
+                  ) : null}
+                </View>
               );
 
             })() : <View />}

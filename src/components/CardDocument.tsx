@@ -357,14 +357,23 @@ export const CardDocument = ({
             const frameStyleVal: string = (cs as any)?.frameStyle || 'polaroid';
             const shadowClr = 'rgba(0,0,0,0.28)';
 
+            const captionFontSize = cs ? Math.max(8, Math.min(cs.fontSize ?? 9, 20)) : 9;
+            const captionColor = cs?.color ?? '#6B6360';
+            const captionAlign = (cs?.align ?? 'center') as any;
+            const captionFont = cs?.italic ? 'Helvetica-Oblique' : 'Helvetica';
+            const captionText = cs?.text ?? '';
+
             if (frameStyleVal === 'classic') {
               const fw = panelW - 56; const fh = Math.round(fw * 0.75); const sd = 5;
               return (
-                <View style={{ width: fw + sd, height: fh + sd } as any}>
-                  <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
-                  <View style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, backgroundColor: '#111111' } as any}>
-                    <Image src={insidePhotoBase64} style={{ margin: 5, width: fw - 10, height: fh - 10, objectFit: 'cover' as any }} />
+                <View>
+                  <View style={{ width: fw + sd, height: fh + sd } as any}>
+                    <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
+                    <View style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, backgroundColor: '#111111' } as any}>
+                      <Image src={insidePhotoBase64} style={{ margin: 5, width: fw - 10, height: fh - 10, objectFit: 'cover' as any }} />
+                    </View>
                   </View>
+                  {captionText ? <Text style={{ marginTop: 6, width: fw, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign, fontFamily: captionFont } as any}>{captionText}</Text> : null}
                 </View>
               );
             }
@@ -372,11 +381,14 @@ export const CardDocument = ({
             if (frameStyleVal === 'square') {
               const sz = panelW - 60; const sd = 5;
               return (
-                <View style={{ width: sz + sd, height: sz + sd } as any}>
-                  <View style={{ position: 'absolute', top: sd, left: sd, width: sz, height: sz, backgroundColor: shadowClr } as any} />
-                  <View style={{ position: 'absolute', top: 0, left: 0, width: sz, height: sz, backgroundColor: '#1a1a1a' } as any}>
-                    <Image src={insidePhotoBase64} style={{ margin: 3, width: sz - 6, height: sz - 6, objectFit: 'cover' as any }} />
+                <View>
+                  <View style={{ width: sz + sd, height: sz + sd } as any}>
+                    <View style={{ position: 'absolute', top: sd, left: sd, width: sz, height: sz, backgroundColor: shadowClr } as any} />
+                    <View style={{ position: 'absolute', top: 0, left: 0, width: sz, height: sz, backgroundColor: '#1a1a1a' } as any}>
+                      <Image src={insidePhotoBase64} style={{ margin: 3, width: sz - 6, height: sz - 6, objectFit: 'cover' as any }} />
+                    </View>
                   </View>
+                  {captionText ? <Text style={{ marginTop: 6, width: sz, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign, fontFamily: captionFont } as any}>{captionText}</Text> : null}
                 </View>
               );
             }
@@ -384,16 +396,24 @@ export const CardDocument = ({
             if (frameStyleVal === 'float') {
               const fw = panelW - 56; const fh = Math.round(fw * 0.75); const sd = 7;
               return (
-                <View style={{ width: fw + sd, height: fh + sd } as any}>
-                  <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
-                  <Image src={insidePhotoBase64} style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, objectFit: 'cover' as any }} />
+                <View>
+                  <View style={{ width: fw + sd, height: fh + sd } as any}>
+                    <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
+                    <Image src={insidePhotoBase64} style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, objectFit: 'cover' as any }} />
+                  </View>
+                  {captionText ? <Text style={{ marginTop: 6, width: fw, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign, fontFamily: captionFont } as any}>{captionText}</Text> : null}
                 </View>
               );
             }
 
             if (frameStyleVal === 'naked') {
               const fw = panelW - 40; const fh = Math.round(fw * 0.75);
-              return <Image src={insidePhotoBase64} style={{ width: fw, height: fh, objectFit: 'cover' as any }} />;
+              return (
+                <View>
+                  <Image src={insidePhotoBase64} style={{ width: fw, height: fh, objectFit: 'cover' as any }} />
+                  {captionText ? <Text style={{ marginTop: 6, width: fw, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign, fontFamily: captionFont } as any}>{captionText}</Text> : null}
+                </View>
+              );
             }
 
             // polaroid (default)
