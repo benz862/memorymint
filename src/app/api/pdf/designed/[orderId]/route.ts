@@ -56,6 +56,16 @@ export async function GET(
     }
 
     const size = (order.selected_size as '4x6' | '5x7') || '5x7';
+    const messageFontSize = order.inside_message_font_size ?? 15;
+
+    // Extract frame style from stored caption JSON (if any)
+    let frameStyle: string = 'polaroid';
+    if (order.inside_photo_caption) {
+      try {
+        const cs = JSON.parse(order.inside_photo_caption);
+        if (cs.frameStyle) frameStyle = cs.frameStyle;
+      } catch { /* ignore */ }
+    }
 
     const pdfBuffer = await renderToBuffer(
       React.createElement(DesignedCardDocument, {
@@ -66,6 +76,8 @@ export async function GET(
         insideMessage: order.inside_message,
         size,
         isWatermarked,
+        messageFontSize,
+        frameStyle,
       }) as any
     );
 

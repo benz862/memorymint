@@ -4,7 +4,7 @@ import prisma from '@/lib/db';
 // POST /api/designed-card/order  — creates a pending DesignedCardOrder
 export async function POST(req: Request) {
   try {
-    const { designedCardId, insidePhotoUrl, insidePhotoCaption, insideMessage, selectedSize } =
+    const { designedCardId, insidePhotoUrl, insidePhotoCaption, insideMessage, selectedSize, insideFontSize } =
       await req.json();
 
     if (!designedCardId || insideMessage === undefined || insideMessage === null || !selectedSize) {
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
         inside_photo_url: insidePhotoUrl || null,
         inside_photo_caption: insidePhotoCaption || null,
         inside_message: insideMessage,
+        inside_message_font_size: typeof insideFontSize === 'number' ? insideFontSize : 15,
         selected_size: selectedSize,
         order_number: orderNumber,
         amount,

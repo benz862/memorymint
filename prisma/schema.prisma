@@ -103,6 +103,7 @@ model CardProject {
   uploaded_image_url   String?
   generated_text       String?
   edited_text          String?
+  message_font_size    Int              @default(15)  // PDF font size in pt
   selected_font_id     String?
   selected_template_id String?
   selected_size        String?
@@ -190,6 +191,7 @@ model DesignedCardOrder {
   inside_photo_url      String?      // Uploaded client photo (nullable if skipped)
   inside_photo_caption  String?      // Optional polaroid-style caption
   inside_message        String       // Client-typed message for inside right
+  inside_message_font_size Int       @default(15)  // PDF font size in pt
   selected_size         String       // "4x6" or "5x7"
   order_number          String       @unique
   amount                Int          // In cents

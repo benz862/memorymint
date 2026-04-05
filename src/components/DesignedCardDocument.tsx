@@ -225,6 +225,8 @@ export interface DesignedCardDocumentProps {
   insidePhotoCaption?: string;
   insideMessage: string;
   messageFontFamily?: string;
+  messageFontSize?: number;   // pt — defaults to 15
+  frameStyle?: string;        // 'polaroid' | 'classic' | 'square' | 'float' | 'naked'
   senderName?: string;
   size: '4x6' | '5x7';
   isWatermarked: boolean;
@@ -236,6 +238,8 @@ export const DesignedCardDocument = ({
   insidePhotoCaption,
   insideMessage,
   messageFontFamily = 'Georgia',
+  messageFontSize = 15,
+  frameStyle = 'polaroid',
   senderName = '',
   size,
   isWatermarked,
@@ -320,7 +324,7 @@ export const DesignedCardDocument = ({
       {/* ── PAGE 2: INNER SPREAD (Photo | Message) ─── */}
       <Page size={[LETTER_W, LETTER_H] as any} style={pageStyle}>
 
-        {/* Panel 2 — Inside left: polaroid photo */}
+        {/* Panel 2 — Inside left: photo (frame style driven) */}
         <View style={{ ...innerPanel(cardX), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <View style={styles.photoPanel}>
             {insidePhotoBase64 ? (() => {
@@ -329,26 +333,77 @@ export const DesignedCardDocument = ({
                 ? pdfFontStyle(cs.fontFamily, cs.bold, cs.italic)
                 : { fontFamily: 'Helvetica-Oblique', fontWeight: 400, fontStyle: 'italic' };
               const captionFontSize = cs ? Math.max(8, Math.min(cs.fontSize, 20)) : DEFAULT_CAPTION_FONT_SIZE;
-              const captionColor = cs?.color || '#6B6360';
-              const captionAlign = cs?.align || 'center';
-              const captionText = cs?.text || '';
-              const polW = panelW - 40;
-              const polH = polW / POLAROID_RATIO;
-              const pLeft = polW * PL;
-              const pTop  = polH * PT;
-              const pWide = polW * PW;
-              const pTall = polH * PH;
+              const captionColor   = cs?.color || '#6B6360';
+              const captionAlign   = cs?.align || 'center';
+              const captionText    = cs?.text || '';
+
+              // ── Frame style rendering ──────────────────────────────
+              const style = frameStyle || 'polaroid';
+              const shadowClr = 'rgba(0,0,0,0.28)';
+
+              if (style === 'polaroid') {
+                const polW = panelW - 40;
+                const polH = polW / POLAROID_RATIO;
+                const pLeft = polW * PL;
+                const pTop  = polH * PT;
+                const pWide = polW * PW;
+                const pTall = polH * PH;
+                return (
+                  <View style={{ width: polW, height: polH }}>
+                    <Image src={insidePhotoBase64} style={{ position: 'absolute', top: pTop, left: pLeft, width: pWide, height: pTall, objectFit: 'cover' as any }} />
+                    <Image src={POLAROID_FRAME} style={{ position: 'absolute', top: 0, left: 0, width: polW, height: polH }} />
+                    {captionText ? (
+                      <Text style={[{ position: 'absolute', top: polH * CAPTION_T, left: pLeft, width: pWide, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign as any, ...captionPdfFont }] as any}>
+                        {captionText}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              }
+
+              if (style === 'classic') {
+                // Black-bordered frame, 4:3, drop shadow
+                const fw = panelW - 56; const fh = Math.round(fw * 0.75); const sd = 5;
+                return (
+                  <View style={{ width: fw + sd, height: fh + sd } as any}>
+                    <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
+                    <View style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, backgroundColor: '#111' } as any}>
+                      <Image src={insidePhotoBase64} style={{ margin: 5, width: fw - 10, height: fh - 10, objectFit: 'cover' as any }} />
+                    </View>
+                  </View>
+                );
+              }
+
+              if (style === 'square') {
+                // Square crop, thin dark border, drop shadow
+                const sz = panelW - 60; const sd = 5;
+                return (
+                  <View style={{ width: sz + sd, height: sz + sd } as any}>
+                    <View style={{ position: 'absolute', top: sd, left: sd, width: sz, height: sz, backgroundColor: shadowClr } as any} />
+                    <View style={{ position: 'absolute', top: 0, left: 0, width: sz, height: sz, backgroundColor: '#1a1a1a' } as any}>
+                      <Image src={insidePhotoBase64} style={{ margin: 3, width: sz - 6, height: sz - 6, objectFit: 'cover' as any }} />
+                    </View>
+                  </View>
+                );
+              }
+
+              if (style === 'float') {
+                // No border, just soft drop shadow
+                const fw = panelW - 56; const fh = Math.round(fw * 0.75); const sd = 7;
+                return (
+                  <View style={{ width: fw + sd, height: fh + sd } as any}>
+                    <View style={{ position: 'absolute', top: sd, left: sd, width: fw, height: fh, backgroundColor: shadowClr } as any} />
+                    <Image src={insidePhotoBase64} style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, objectFit: 'cover' as any }} />
+                  </View>
+                );
+              }
+
+              // 'naked' — raw image, no frame
+              const fw2 = panelW - 40; const fh2 = Math.round(fw2 * 0.75);
               return (
-                <View style={{ width: polW, height: polH }}>
-                  <Image src={insidePhotoBase64} style={{ position: 'absolute', top: pTop, left: pLeft, width: pWide, height: pTall, objectFit: 'cover' as any }} />
-                  <Image src={POLAROID_FRAME} style={{ position: 'absolute', top: 0, left: 0, width: polW, height: polH }} />
-                  {captionText ? (
-                    <Text style={[{ position: 'absolute', top: polH * CAPTION_T, left: pLeft, width: pWide, fontSize: captionFontSize, color: captionColor, textAlign: captionAlign as any, ...captionPdfFont }] as any}>
-                      {captionText}
-                    </Text>
-                  ) : null}
-                </View>
+                <Image src={insidePhotoBase64} style={{ width: fw2, height: fh2, objectFit: 'cover' as any }} />
               );
+
             })() : <View />}
           </View>
           {isWatermarked && (
@@ -359,7 +414,7 @@ export const DesignedCardDocument = ({
         {/* Panel 3 — Inside right: message */}
         <View style={{ ...innerPanel(midX), paddingTop: 40, paddingLeft: 36, paddingRight: 36, paddingBottom: 36, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Text style={[styles.messageText, {
-            fontSize: panelW < 320 ? 10 : FONT_SIZE_MESSAGE,
+            fontSize: messageFontSize,
             ...pdfFontStyle(messageFontFamily, false, false),
           } as any]}>{insideMessage}</Text>
           {senderName ? (
