@@ -93,35 +93,54 @@ export default function PhotoEditor({
     initialCaption || DEFAULT_CAPTION_STYLE
   );
 
-  // Zoom & crop — initial crop locked to polaroid photo window ratio
+  // ── Zoom, pan & crop ─────────────────────────────────────
   const [zoom, setZoom] = useState(1);
-  const [crop, setCrop] = useState<CropRect>(() => {
-    // Ratio locked: h_frac = w_frac * CANVAS_W / (CANVAS_H * PHOTO_AR)
-    // Use PHOTO_AR inline since we can’t reference the const inside the function body yet
-    const ar = (0.89 * (6442 / 7997)) / 0.75;
-    const h = 0.80;
-    const w = (h * 360 * ar) / 480; // w_frac matching the ratio
-    return { x: (1 - w) / 2, y: 0.10, w, h };
-  });
+  const [panX, setPanX] = useState(0); // image pan offset in canvas pixels
+  const [panY, setPanY] = useState(0);
 
-  // Drag state (for crop box)
+  const CANVAS_W = 480;
+  const CANVAS_H = 360;
+  const POLAROID_AR = (0.89 * (6442 / 7997)) / 0.75; // ≈ 0.956 W:H
+
+  // Crop ratio — null means free (no AR lock)
+  const [cropAR, setCropAR] = useState<number | null>(POLAROID_AR);
+
+  const CROP_RATIOS: { label: string; ar: number | null }[] = [
+    { label: "Photo", ar: POLAROID_AR },
+    { label: "4:3",   ar: 4 / 3 },
+    { label: "3:2",   ar: 3 / 2 },
+    { label: "16:9",  ar: 16 / 9 },
+    { label: "1:1",   ar: 1 },
+    { label: "3:4",   ar: 3 / 4 },
+    { label: "2:3",   ar: 2 / 3 },
+    { label: "Free",  ar: null },
+  ];
+
+  // AR-aware helpers (used only when cropAR is not null)
+  const hFromW = (w: number, ar: number) => (w * CANVAS_W) / (CANVAS_H * ar);
+  const wFromH = (h: number, ar: number) => (h * CANVAS_H * ar) / CANVAS_W;
+
+  // Build a centered crop for a given AR (or free box for null)
+  const centeredCrop = (ar: number | null): CropRect => {
+    if (ar === null) return { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+    const w = Math.min(wFromH(0.78, ar), 0.92);
+    const h = hFromW(w, ar);
+    return { x: (1 - w) / 2, y: Math.max(0.02, (1 - h) / 2), w, h };
+  };
+
+  const [crop, setCrop] = useState<CropRect>(() => centeredCrop(POLAROID_AR));
+
+  // Drag state — includes pan mode
   const dragRef = useRef<{
-    handle: "move" | "nw" | "ne" | "sw" | "se" | null;
+    handle: "move" | "nw" | "ne" | "sw" | "se" | "pan";
     startX: number;
     startY: number;
     startCrop: CropRect;
+    startPanX: number;
+    startPanY: number;
   } | null>(null);
 
-  const HANDLE_SIZE = 10; // px radius for corner handles
-
-  // ── Polaroid photo window aspect ratio ────────────────────
-  // Matches the PDF constants: PW=0.89, PH=0.70, frame W/H = 6442/7997
-  const CANVAS_W = 480;
-  const CANVAS_H = 360;
-  const PHOTO_AR = (0.89 * (6442 / 7997)) / 0.75; // ≈ 0.956 W:H
-  // Convert normalised crop fractions (relative to canvas) ↔ locked aspect ratio
-  const hFromW = (w: number) => (w * CANVAS_W) / (CANVAS_H * PHOTO_AR);
-  const wFromH = (h: number) => (h * CANVAS_H * PHOTO_AR) / CANVAS_W;
+  const HANDLE_SIZE = 10;
 
   // ── Draw canvas ───────────────────────────────────────────
   const draw = useCallback(() => {
@@ -138,11 +157,11 @@ export default function PhotoEditor({
     // Clear
     ctx.clearRect(0, 0, W, H);
 
-    // Draw image scaled (with zoom applied around center)
+    // Draw image scaled (with zoom applied around center + pan offset)
     const scaledW = img.naturalWidth * zoom;
     const scaledH = img.naturalHeight * zoom;
-    const offsetX = (W - scaledW) / 2;
-    const offsetY = (H - scaledH) / 2;
+    const offsetX = (W - scaledW) / 2 + panX;
+    const offsetY = (H - scaledH) / 2 + panY;
 
     ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
 
@@ -197,7 +216,7 @@ export default function PhotoEditor({
       ctx.lineWidth = 1;
       ctx.stroke();
     }
-  }, [zoom, crop]);
+  }, [zoom, crop, panX, panY]);
 
   // Load image once
   useEffect(() => {
@@ -220,7 +239,7 @@ export default function PhotoEditor({
     py: number,
     W: number,
     H: number
-  ): "move" | "nw" | "ne" | "sw" | "se" | null => {
+  ): "move" | "nw" | "ne" | "sw" | "se" | "pan" => {
     const cx = crop.x * W;
     const cy = crop.y * H;
     const cw = crop.w * W;
@@ -232,7 +251,7 @@ export default function PhotoEditor({
     if (Math.abs(px - cx) < hs && Math.abs(py - (cy + ch)) < hs) return "sw";
     if (Math.abs(px - (cx + cw)) < hs && Math.abs(py - (cy + ch)) < hs) return "se";
     if (px > cx && px < cx + cw && py > cy && py < cy + ch) return "move";
-    return null;
+    return "pan"; // drag outside crop box → pan the image
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -241,9 +260,8 @@ export default function PhotoEditor({
     const px = (e.clientX - rect.left) * (canvas.width / rect.width);
     const py = (e.clientY - rect.top) * (canvas.height / rect.height);
     const handle = getHandle(px, py, canvas.width, canvas.height);
-    if (!handle) return;
     canvas.setPointerCapture(e.pointerId);
-    dragRef.current = { handle, startX: px, startY: py, startCrop: { ...crop } };
+    dragRef.current = { handle, startX: px, startY: py, startCrop: { ...crop }, startPanX: panX, startPanY: panY };
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -253,52 +271,96 @@ export default function PhotoEditor({
     const px = (e.clientX - rect.left) * (canvas.width / rect.width);
     const py = (e.clientY - rect.top) * (canvas.height / rect.height);
 
+    // ── Pan mode: drag outside crop box moves the image ──────
+    if (dragRef.current.handle === "pan") {
+      setPanX(dragRef.current.startPanX + (px - dragRef.current.startX));
+      setPanY(dragRef.current.startPanY + (py - dragRef.current.startY));
+      return;
+    }
+
     const W = canvas.width;
     const H = canvas.height;
     const dx = (px - dragRef.current.startX) / W;
     const dy = (py - dragRef.current.startY) / H;
     const sc = dragRef.current.startCrop;
-
-    const MIN = 0.1;
+    const MIN = 0.08;
     let { x, y, w, h } = sc;
 
-    // All corner drags maintain the polaroid photo window aspect ratio
-    switch (dragRef.current.handle) {
-      case "move":
-        x = clamp(sc.x + dx, 0, 1 - sc.w);
-        y = clamp(sc.y + dy, 0, 1 - sc.h);
-        break;
-      case "se": {
-        w = clamp(sc.w + dx, MIN, 1 - sc.x);
-        h = hFromW(w);
-        if (sc.y + h > 1) { h = 1 - sc.y; w = wFromH(h); }
-        break;
+    if (cropAR === null) {
+      // ── Free resize — no AR lock ───────────────────────────
+      switch (dragRef.current.handle) {
+        case "move":
+          x = clamp(sc.x + dx, 0, 1 - sc.w);
+          y = clamp(sc.y + dy, 0, 1 - sc.h);
+          break;
+        case "se":
+          w = clamp(sc.w + dx, MIN, 1 - sc.x);
+          h = clamp(sc.h + dy, MIN, 1 - sc.y);
+          break;
+        case "sw": {
+          const right = sc.x + sc.w;
+          x = clamp(sc.x + dx, 0, right - MIN);
+          w = right - x;
+          h = clamp(sc.h + dy, MIN, 1 - sc.y);
+          break;
+        }
+        case "ne": {
+          const bottom = sc.y + sc.h;
+          w = clamp(sc.w + dx, MIN, 1 - sc.x);
+          h = clamp(sc.h - dy, MIN, bottom);
+          y = bottom - h;
+          break;
+        }
+        case "nw": {
+          const right = sc.x + sc.w;
+          const bottom = sc.y + sc.h;
+          x = clamp(sc.x + dx, 0, right - MIN);
+          w = right - x;
+          h = clamp(sc.h - dy, MIN, bottom);
+          y = bottom - h;
+          break;
+        }
       }
-      case "sw": {
-        const right = sc.x + sc.w;
-        x = clamp(sc.x + dx, 0, right - MIN);
-        w = right - x;
-        h = hFromW(w);
-        if (sc.y + h > 1) { h = 1 - sc.y; w = wFromH(h); x = right - w; }
-        break;
-      }
-      case "ne": {
-        const bottom = sc.y + sc.h;
-        w = clamp(sc.w + dx, MIN, 1 - sc.x);
-        h = hFromW(w);
-        y = bottom - h;
-        if (y < 0) { y = 0; h = bottom; w = wFromH(h); }
-        break;
-      }
-      case "nw": {
-        const right = sc.x + sc.w;
-        const bottom = sc.y + sc.h;
-        x = clamp(sc.x + dx, 0, right - MIN);
-        w = right - x;
-        h = hFromW(w);
-        y = bottom - h;
-        if (y < 0) { y = 0; h = bottom; w = wFromH(h); x = right - w; }
-        break;
+    } else {
+      // ── Locked AR resize ───────────────────────────────────
+      const ar = cropAR;
+      switch (dragRef.current.handle) {
+        case "move":
+          x = clamp(sc.x + dx, 0, 1 - sc.w);
+          y = clamp(sc.y + dy, 0, 1 - sc.h);
+          break;
+        case "se": {
+          w = clamp(sc.w + dx, MIN, 1 - sc.x);
+          h = hFromW(w, ar);
+          if (sc.y + h > 1) { h = 1 - sc.y; w = wFromH(h, ar); }
+          break;
+        }
+        case "sw": {
+          const right = sc.x + sc.w;
+          x = clamp(sc.x + dx, 0, right - MIN);
+          w = right - x;
+          h = hFromW(w, ar);
+          if (sc.y + h > 1) { h = 1 - sc.y; w = wFromH(h, ar); x = right - w; }
+          break;
+        }
+        case "ne": {
+          const bottom = sc.y + sc.h;
+          w = clamp(sc.w + dx, MIN, 1 - sc.x);
+          h = hFromW(w, ar);
+          y = bottom - h;
+          if (y < 0) { y = 0; h = bottom; w = wFromH(h, ar); }
+          break;
+        }
+        case "nw": {
+          const right = sc.x + sc.w;
+          const bottom = sc.y + sc.h;
+          x = clamp(sc.x + dx, 0, right - MIN);
+          w = right - x;
+          h = hFromW(w, ar);
+          y = bottom - h;
+          if (y < 0) { y = 0; h = bottom; w = wFromH(h, ar); x = right - w; }
+          break;
+        }
       }
     }
 
@@ -316,11 +378,11 @@ export default function PhotoEditor({
     const W = canvas.width;
     const H = canvas.height;
 
-    // Map crop fractions back to image pixel coords
+    // Map crop fractions back to image pixel coords (including pan)
     const scaledW = img.naturalWidth * zoom;
     const scaledH = img.naturalHeight * zoom;
-    const offsetX = (W - scaledW) / 2;
-    const offsetY = (H - scaledH) / 2;
+    const offsetX = (W - scaledW) / 2 + panX;
+    const offsetY = (H - scaledH) / 2 + panY;
 
     const srcX = (crop.x * W - offsetX) / zoom;
     const srcY = (crop.y * H - offsetY) / zoom;
@@ -376,14 +438,44 @@ export default function PhotoEditor({
           style={{ touchAction: "none" }}
         />
 
+        {/* Crop ratio picker */}
+        <div className={styles.zoomRow} style={{ flexWrap: "wrap", gap: "0.3rem 0.4rem" }}>
+          <span className={styles.zoomLabel} style={{ flexShrink: 0 }}>📐 Ratio</span>
+          <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", flex: 1 }}>
+            {CROP_RATIOS.map((r) => (
+              <button
+                key={r.label}
+                onClick={() => {
+                  setCropAR(r.ar);
+                  setCrop(centeredCrop(r.ar));
+                  setPanX(0); setPanY(0);
+                }}
+                style={{
+                  padding: "0.2rem 0.45rem",
+                  fontSize: "0.68rem",
+                  borderRadius: "4px",
+                  border: `1.5px solid ${cropAR === r.ar ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)"}`,
+                  background: cropAR === r.ar ? "rgba(255,255,255,0.22)" : "transparent",
+                  color: cropAR === r.ar ? "#fff" : "rgba(255,255,255,0.65)",
+                  cursor: "pointer",
+                  fontWeight: cropAR === r.ar ? 700 : 400,
+                  transition: "all 0.15s",
+                }}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Zoom slider */}
         <div className={styles.zoomRow}>
           <span className={styles.zoomLabel}>🔍 Zoom</span>
           <input
             id="zoom-slider"
             type="range"
-            min={0.5}
-            max={3}
+            min={0.1}
+            max={8}
             step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
@@ -392,19 +484,23 @@ export default function PhotoEditor({
           <span className={styles.zoomValue}>{zoom.toFixed(1)}×</span>
         </div>
 
-        {/* Reset crop */}
-        <button
-          className={styles.btnResetCrop}
-          onClick={() => {
-            const ar = (0.89 * (6442 / 7997)) / 0.75;
-            const h = 0.80;
-            const w = (h * 360 * ar) / 480;
-            setCrop({ x: (1 - w) / 2, y: 0.10, w, h });
-            setZoom(1);
-          }}
-        >
-          ↺ Reset
-        </button>
+        {/* Pan hint + Reset */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.5)", flex: 1 }}>
+            Drag outside crop box to pan image
+          </span>
+          <button
+            className={styles.btnResetCrop}
+            onClick={() => {
+              setCrop(centeredCrop(cropAR));
+              setZoom(1);
+              setPanX(0);
+              setPanY(0);
+            }}
+          >
+            ↺ Reset
+          </button>
+        </div>
       </div>
 
       {/* ── Bottom two columns: Caption controls + live preview ── */}
