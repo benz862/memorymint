@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import prisma from '@/lib/db';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
-  apiVersion: '2026-03-25.dahlia',
-});
-
-
 export async function POST(req: Request) {
+  // Initialise inside handler so Vercel always resolves the env var at runtime
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2026-03-25.dahlia',
+  });
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature');
 
