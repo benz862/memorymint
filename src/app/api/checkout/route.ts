@@ -65,6 +65,12 @@ export async function POST(req: Request) {
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://memorymint.app').replace(/\/$/, '');
 
+    const successUrl = `${appUrl}/success/${order.id}`;
+    const cancelUrl = `${appUrl}/preview/${projectId}`;
+
+    console.log('Stripe success_url:', successUrl);
+    console.log('Stripe cancel_url:', cancelUrl);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
