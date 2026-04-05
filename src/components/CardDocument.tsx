@@ -311,7 +311,7 @@ export const CardDocument = ({
     paddingBottom: 36,
     display: 'flex' as const,
     flexDirection: 'column' as const,
-    justifyContent: 'flex-start' as const,
+    justifyContent: 'center' as const,
   };
 
   const messageFontSize = panelW < 320 ? 10 : 13; // smaller on 4x6

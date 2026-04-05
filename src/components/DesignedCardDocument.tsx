@@ -357,7 +357,7 @@ export const DesignedCardDocument = ({
         </View>
 
         {/* Panel 3 — Inside right: message */}
-        <View style={{ ...innerPanel(midX), paddingTop: 40, paddingLeft: 36, paddingRight: 36, paddingBottom: 36, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+        <View style={{ ...innerPanel(midX), paddingTop: 40, paddingLeft: 36, paddingRight: 36, paddingBottom: 36, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Text style={[styles.messageText, {
             fontSize: panelW < 320 ? 10 : FONT_SIZE_MESSAGE,
             ...pdfFontStyle(messageFontFamily, false, false),
