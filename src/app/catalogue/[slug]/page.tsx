@@ -5,6 +5,9 @@ import CardConfigurator from "./CardConfigurator";
 import styles from "../catalogue.module.css";
 import Logo from "@/components/Logo";
 
+// Always fetch the correct card fresh — prevents Vercel serving a stale cached page
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: { slug: string };
 }
