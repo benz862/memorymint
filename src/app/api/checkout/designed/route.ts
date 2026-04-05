@@ -21,7 +21,12 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const stripeKey = (process.env.STRIPE_SECRET_KEY ?? '').trim().replace(/[\r\n\t]/g, '');
+
+    // Strip ALL control/non-printable chars that cause ERR_INVALID_CHAR in HTTP headers
+    const stripeKey = (process.env.STRIPE_SECRET_KEY ?? '')
+      .split('')
+      .filter(c => c.charCodeAt(0) >= 33 && c.charCodeAt(0) < 127)
+      .join('');
     const isMock = !stripeKey || stripeKey.includes('dummy') || stripeKey.includes('test_dummy');
 
     if (isMock) {
@@ -32,9 +37,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: `${baseUrl}/success/designed/${order.id}` });
     }
 
-    // Initialise Stripe inside the handler so env vars are always resolved at runtime
+    console.log('Stripe key length after sanitise:', stripeKey.length);
+    console.log('Stripe key prefix:', stripeKey.substring(0, 7));
+
+    // Use createFetchHttpClient to avoid Node.js HTTPS ERR_INVALID_CHAR issues
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2026-03-25.dahlia',
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     // Pricing — use inline price_data so no pre-created Price IDs are required
@@ -70,7 +79,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('API /checkout/designed Error:', error?.message ?? error);
-    console.error('Stripe error detail:', error?.raw ?? '');
+    console.error('Stripe error type:', error?.type ?? '');
+    console.error('Stripe error code:', error?.code ?? '');
     return NextResponse.json({ error: error.message || 'Checkout error' }, { status: 500 });
   }
 }

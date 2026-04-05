@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import styles from "./catalogue.module.css";
 
@@ -104,7 +103,9 @@ export default function CatalogueClient({ cards }: Props) {
       ) : (
         <div className={styles.grid}>
           {filtered.map((card) => (
-            <Link key={card.id} href={`/catalogue/${card.slug}`} className={styles.cardTile}>
+            // Use a plain <a> (not Next.js Link) so every click is a full page
+            // navigation — prevents the Router Cache serving the wrong card.
+            <a key={card.id} href={`/catalogue/${card.slug}`} className={styles.cardTile}>
               <div className={styles.cardThumbnail}>
                 <Image
                   src={card.preview_thumbnail_url}
@@ -120,7 +121,7 @@ export default function CatalogueClient({ cards }: Props) {
                 {card.description && <p className={styles.cardDesc}>{card.description}</p>}
                 <span className={styles.cardCta}>Personalise This Card →</span>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
       )}
