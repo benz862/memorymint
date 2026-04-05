@@ -59,7 +59,6 @@ export default function CardConfigurator({ card }: CardConfiguratorProps) {
   const [rawPhotoSrc, setRawPhotoSrc] = useState<string | null>(null);
   const [croppedPhotoSrc, setCroppedPhotoSrc] = useState<string | null>(null);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE);
-  const [frameStyle, setFrameStyle] = useState<FrameStyle>("polaroid");
 
   // Step 2 state
   const [message, setMessage] = useState("");
@@ -121,9 +120,9 @@ export default function CardConfigurator({ card }: CardConfiguratorProps) {
       let uploadedPhotoUrl: string | null = null;
       if (croppedPhotoSrc) uploadedPhotoUrl = await uploadCroppedPhoto();
 
-      // frameStyle is merged in so the PDF renderer reads it from the caption JSON
+      // frameStyle is part of captionStyle (set inside PhotoEditor)
       const captionJson = croppedPhotoSrc
-        ? JSON.stringify({ ...captionStyle, frameStyle })
+        ? JSON.stringify(captionStyle)
         : null;
 
       const res = await fetch("/api/designed-card/order", {
@@ -288,21 +287,21 @@ export default function CardConfigurator({ card }: CardConfiguratorProps) {
             <button
               key={fs.value}
               id={`frame-${fs.value}`}
-              onClick={() => setFrameStyle(fs.value)}
+              onClick={() => setCaptionStyle(prev => ({ ...prev, frameStyle: fs.value }))}
               title={fs.desc}
               style={{
                 padding: "0.5rem 0.2rem 0.4rem",
                 borderRadius: "var(--radius-md)",
-                border: `1.5px solid ${frameStyle === fs.value ? "var(--mint)" : "var(--border)"}`,
-                background: frameStyle === fs.value ? "var(--muted)" : "transparent",
-                color: frameStyle === fs.value ? "var(--foreground)" : "var(--muted-foreground)",
+                border: `1.5px solid ${(captionStyle.frameStyle ?? "polaroid") === fs.value ? "var(--mint)" : "var(--border)"}`,
+                background: (captionStyle.frameStyle ?? "polaroid") === fs.value ? "var(--muted)" : "transparent",
+                color: (captionStyle.frameStyle ?? "polaroid") === fs.value ? "var(--foreground)" : "var(--muted-foreground)",
                 cursor: "pointer",
                 transition: "all 0.18s ease",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 gap: "0.15rem",
-                fontWeight: frameStyle === fs.value ? 600 : 400,
+                fontWeight: (captionStyle.frameStyle ?? "polaroid") === fs.value ? 600 : 400,
               }}
             >
               <span style={{ fontSize: "1.2rem" }}>{fs.icon}</span>
@@ -311,7 +310,7 @@ export default function CardConfigurator({ card }: CardConfiguratorProps) {
           ))}
         </div>
         <p style={{ fontSize: "0.72rem", color: "var(--muted-foreground)", marginTop: "0.4rem" }}>
-          {FRAME_STYLES.find(f => f.value === frameStyle)?.desc}
+          {FRAME_STYLES.find(f => f.value === (captionStyle.frameStyle ?? "polaroid"))?.desc}
         </p>
       </div>
 
@@ -577,14 +576,14 @@ export default function CardConfigurator({ card }: CardConfiguratorProps) {
                 />
 
                 {step === 1 && photoStage === "confirmed" && croppedPhotoSrc && (
-                  <div style={{ marginTop: "1.5rem", textAlign: "center", maxWidth: "220px", margin: "1.5rem auto 0" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {framePreviewStyle(frameStyle, croppedPhotoSrc)}
-                    <p style={{ fontSize: "0.72rem", color: "var(--muted-foreground)", marginTop: "0.5rem" }}>
-                      Inside-left · {FRAME_STYLES.find(f => f.value === frameStyle)?.label}
-                    </p>
-                  </div>
-                )}
+                <div style={{ marginTop: "1.5rem", textAlign: "center", maxWidth: "220px", margin: "1.5rem auto 0" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {framePreviewStyle((captionStyle.frameStyle ?? "polaroid") as FrameStyle, croppedPhotoSrc)}
+                  <p style={{ fontSize: "0.72rem", color: "var(--muted-foreground)", marginTop: "0.5rem" }}>
+                    Inside-left · {FRAME_STYLES.find(f => f.value === (captionStyle.frameStyle ?? "polaroid"))?.label}
+                  </p>
+                </div>
+              )}
 
                 <div className={styles.lockedBadge}>
                   <span>🔒</span>

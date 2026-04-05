@@ -15,16 +15,6 @@ const FONT_GOOGLE_URLS: Record<string, string> = {
   Inter: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap",
 };
 
-type FrameStyle = "polaroid" | "classic" | "square" | "float" | "naked";
-
-const FRAME_STYLES: { value: FrameStyle; label: string; icon: string; desc: string }[] = [
-  { value: "polaroid", label: "Polaroid", icon: "📸", desc: "White frame + caption" },
-  { value: "classic",  label: "Classic",  icon: "🖼",  desc: "Black border + shadow" },
-  { value: "square",   label: "Square",   icon: "⬛",  desc: "Square crop + shadow"  },
-  { value: "float",    label: "Float",    icon: "✨",  desc: "No border, shadow only" },
-  { value: "naked",    label: "No Frame", icon: "🖼️",  desc: "Raw photo, no frame"   },
-];
-
 export default function CustomizeForm({
   projectId,
   templates,
@@ -58,7 +48,6 @@ export default function CustomizeForm({
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [croppedDataUrl, setCroppedDataUrl] = useState<string | null>(null);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle | null>(null);
-  const [frameStyle, setFrameStyle] = useState<FrameStyle>("polaroid");
   const [isDragging, setIsDragging] = useState(false);
 
   const selectedFont = fonts.find((f) => f.id === fontId);
@@ -123,8 +112,8 @@ export default function CustomizeForm({
           const d = await uploadRes.json();
           photoUrl = d.url;
         }
-        // Merge frameStyle into caption JSON (same pattern as CardConfigurator)
-        if (captionStyle) captionJson = JSON.stringify({ ...captionStyle, frameStyle });
+        // frameStyle is now part of captionStyle (set inside PhotoEditor)
+        if (captionStyle) captionJson = JSON.stringify(captionStyle);
       }
 
       const res = await fetch(`/api/project/${projectId}`, {
@@ -250,58 +239,19 @@ export default function CustomizeForm({
             </p>
 
             {croppedDataUrl ? (
-              <div>
-                <div className={styles.photoDoneRow}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={croppedDataUrl} alt="Cropped" className={styles.uploadThumb} />
-                  <div>
-                    <button className={styles.btnEditPhoto} onClick={() => setPhotoStage("editing")}>
-                      ✏️ Edit / re-crop
-                    </button>
-                    <button
-                      className={styles.removePhotoBtn}
-                      onClick={() => { setCroppedDataUrl(null); setCaptionStyle(null); setPhotoStage("idle"); setRawImageSrc(null); }}
-                    >
-                      ✕ Remove
-                    </button>
-                  </div>
-                </div>
-
-                {/* Frame style picker — shown only when a photo is present */}
-                <div style={{ marginTop: "1rem" }}>
-                  <p style={{ fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.5rem", color: "var(--foreground)" }}>
-                    Photo Frame Style
-                  </p>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "0.35rem" }}>
-                    {FRAME_STYLES.map((fs) => (
-                      <button
-                        key={fs.value}
-                        id={`frame-${fs.value}`}
-                        onClick={() => setFrameStyle(fs.value)}
-                        title={fs.desc}
-                        style={{
-                          padding: "0.45rem 0.15rem 0.4rem",
-                          borderRadius: "8px",
-                          border: `1.5px solid ${frameStyle === fs.value ? "var(--mint)" : "var(--border)"}`,
-                          background: frameStyle === fs.value ? "var(--muted)" : "transparent",
-                          color: frameStyle === fs.value ? "var(--foreground)" : "var(--muted-foreground)",
-                          cursor: "pointer",
-                          transition: "all 0.18s ease",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: "0.1rem",
-                          fontWeight: frameStyle === fs.value ? 600 : 400,
-                        }}
-                      >
-                        <span style={{ fontSize: "1.1rem" }}>{fs.icon}</span>
-                        <span style={{ fontSize: "0.6rem", textAlign: "center", lineHeight: 1.2 }}>{fs.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p style={{ fontSize: "0.7rem", color: "var(--muted-foreground)", marginTop: "0.35rem" }}>
-                    {FRAME_STYLES.find(f => f.value === frameStyle)?.desc}
-                  </p>
+              <div className={styles.photoDoneRow}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={croppedDataUrl} alt="Cropped" className={styles.uploadThumb} />
+                <div>
+                  <button className={styles.btnEditPhoto} onClick={() => setPhotoStage("editing")}>
+                    ✏️ Edit / re-crop
+                  </button>
+                  <button
+                    className={styles.removePhotoBtn}
+                    onClick={() => { setCroppedDataUrl(null); setCaptionStyle(null); setPhotoStage("idle"); setRawImageSrc(null); }}
+                  >
+                    ✕ Remove
+                  </button>
                 </div>
               </div>
             ) : (

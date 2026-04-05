@@ -13,6 +13,7 @@ export interface CaptionStyle {
   align: "left" | "center" | "right";
   bold: boolean;
   italic: boolean;
+  frameStyle?: string; // polaroid | classic | square | float | naked
 }
 
 export const DEFAULT_CAPTION_STYLE: CaptionStyle = {
@@ -23,7 +24,17 @@ export const DEFAULT_CAPTION_STYLE: CaptionStyle = {
   align: "center",
   bold: false,
   italic: true,
+  frameStyle: "polaroid",
 };
+
+// ── Frame Styles ─────────────────────────────────────────────
+const FRAME_STYLES = [
+  { value: "polaroid", label: "Polaroid", icon: "📸", desc: "White frame + caption" },
+  { value: "classic",  label: "Classic",  icon: "🖼",  desc: "Black border + shadow" },
+  { value: "square",   label: "Square",   icon: "⬛",  desc: "Square crop + shadow"  },
+  { value: "float",    label: "Float",    icon: "✨",  desc: "No border, shadow only" },
+  { value: "naked",    label: "No Frame", icon: "🖼️",  desc: "Raw photo, no frame"   },
+];
 
 // ── Font Options ─────────────────────────────────────────────
 const FONTS = [
@@ -401,6 +412,29 @@ export default function PhotoEditor({
 
         {/* Caption Controls */}
         <div className={styles.captionControls}>
+
+          {/* Frame Style */}
+          <div className={styles.captionControlGroup}>
+            <label className={styles.captionControlLabel}>Frame Style</label>
+            <div className={styles.fontGrid}>
+              {FRAME_STYLES.map((fs) => (
+                <button
+                  key={fs.value}
+                  className={`${styles.fontChip} ${(caption.frameStyle ?? "polaroid") === fs.value ? styles.fontChipActive : ""}`}
+                  onClick={() => updateCaption({ frameStyle: fs.value })}
+                  title={fs.desc}
+                  style={{ flexDirection: "column", gap: "0.15rem", padding: "0.4rem 0.2rem" }}
+                >
+                  <span style={{ fontSize: "1rem" }}>{fs.icon}</span>
+                  <span style={{ fontSize: "0.62rem" }}>{fs.label}</span>
+                </button>
+              ))}
+            </div>
+            <span className={styles.charCount} style={{ fontSize: "0.7rem", color: "#888", marginTop: "0.2rem", display: "block", textAlign: "left" }}>
+              {FRAME_STYLES.find(f => f.value === (caption.frameStyle ?? "polaroid"))?.desc}
+            </span>
+          </div>
+
           <div className={styles.captionControlGroup}>
             <label htmlFor="caption-text" className={styles.captionControlLabel}>Caption text</label>
             <input
@@ -505,25 +539,46 @@ export default function PhotoEditor({
           </div>
         </div>
 
-        {/* Live Polaroid Preview */}
+        {/* Live Frame Preview */}
         <div className={styles.editorPreviewCol}>
           <div className={styles.editorPreviewLabel}>Live Preview</div>
-          <div className={styles.polaroidPreviewLarge}>
-            {/* We show the full canvas image cropped via CSS clip */}
-            <div className={styles.polaroidPhotoBox}>
-              {/* Use a separate smaller canvas export preview via an img tag redrawn on each change */}
-              <CropPreviewImg
-                imageSrc={imageSrc}
-                crop={crop}
-                zoom={zoom}
-              />
-            </div>
-            {caption.text && (
-              <div style={polaroidCaptionStyle}>{caption.text}</div>
-            )}
-          </div>
+          {(() => {
+            const fs = caption.frameStyle ?? "polaroid";
+            const photoBox = (
+              <div className={styles.polaroidPhotoBox}>
+                <CropPreviewImg imageSrc={imageSrc} crop={crop} zoom={zoom} />
+              </div>
+            );
+            if (fs === "classic") return (
+              <div style={{ border: "4px solid #111", boxShadow: "5px 5px 0 rgba(0,0,0,0.25)", display: "block", width: "100%" }}>
+                {photoBox}
+              </div>
+            );
+            if (fs === "square") return (
+              <div style={{ border: "3px solid #1a1a1a", boxShadow: "4px 4px 0 rgba(0,0,0,0.25)", aspectRatio: "1/1", overflow: "hidden", width: "100%" }}>
+                {photoBox}
+              </div>
+            );
+            if (fs === "float") return (
+              <div style={{ boxShadow: "6px 6px 0 rgba(0,0,0,0.22)", display: "block", width: "100%" }}>
+                {photoBox}
+              </div>
+            );
+            if (fs === "naked") return (
+              <div style={{ width: "100%" }}>{photoBox}</div>
+            );
+            // polaroid (default)
+            return (
+              <div className={styles.polaroidPreviewLarge}>
+                {photoBox}
+                {caption.text && (
+                  <div style={polaroidCaptionStyle}>{caption.text}</div>
+                )}
+              </div>
+            );
+          })()}
           <p className={styles.editorPreviewHint}>
-            This is how it will appear inside your card.
+            {FRAME_STYLES.find(f => f.value === (caption.frameStyle ?? "polaroid"))?.desc}
           </p>
         </div>
       </div>
