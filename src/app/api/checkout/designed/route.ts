@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import prisma from '@/lib/db';
-import { PRICING } from '@/lib/constants';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
-  apiVersion: '2026-03-25.dahlia',
-});
-
 
 // POST /api/checkout/designed  — initiates Stripe checkout for a DesignedCardOrder
 export async function POST(req: Request) {
@@ -27,11 +21,10 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const isMockStripe =
-      !process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('dummy');
+    const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
+    const isMock = !stripeKey || stripeKey.includes('dummy') || stripeKey.includes('test_dummy');
 
-    if (isMockStripe) {
-      // Auto-complete in dev
+    if (isMock) {
       await prisma.designedCardOrder.update({
         where: { id: order.id },
         data: { payment_status: 'completed' },
@@ -39,14 +32,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: `${baseUrl}/success/designed/${order.id}` });
     }
 
-    const priceInfo = PRICING[order.selected_size];
+    // Initialise Stripe inside the handler so env vars are always resolved at runtime
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2026-03-25.dahlia',
+    });
+
+    // Pricing — use inline price_data so no pre-created Price IDs are required
+    const isLargeCard = order.selected_size === '5x7';
+    const unitAmount = isLargeCard ? 599 : 399; // cents
+    const sizeLabel = isLargeCard ? '5×7"' : '4×6"';
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceInfo?.stripePriceId ?? (order.selected_size === '5x7'
-            ? 'price_1TIUMkE6oTidvpnUl5bLIvTF'
-            : 'price_1TIUMjE6oTidvpnU0BDTIukc'),
+          price_data: {
+            currency: 'usd',
+            unit_amount: unitAmount,
+            product_data: {
+              name: `MemoryMint Greeting Card — ${sizeLabel}`,
+              description: `High-resolution, print-ready greeting card PDF · ${order.designed_card.name || 'Pre-designed card'}`,
+            },
+          },
           quantity: 1,
         },
       ],
@@ -54,11 +61,16 @@ export async function POST(req: Request) {
       success_url: `${baseUrl}/success/designed/${order.id}`,
       cancel_url: `${baseUrl}/catalogue/${order.designed_card.slug}`,
       client_reference_id: order.id,
+      metadata: {
+        order_id: order.id,
+        designed_card_id: order.designed_card_id,
+      },
     });
 
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
-    console.error('API /checkout/designed Error:', error);
+    console.error('API /checkout/designed Error:', error?.message ?? error);
+    console.error('Stripe error detail:', error?.raw ?? '');
     return NextResponse.json({ error: error.message || 'Checkout error' }, { status: 500 });
   }
 }
