@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://memorymint.app').replace(/\/$/, '');
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
