@@ -48,9 +48,11 @@ const BACK_TEXT_COLOR = '#666666';
 // Stamps a grid of small MemoryMint logos across the given area.
 // The logo is rendered at natural colour but at 40% opacity so it reads as
 // a muted, non-distracting deterrent on any background.
-const TILE_SIZE = 52;   // logo width & height in points (~0.72")
-const TILE_COL_GAP = 90; // horizontal distance between tile centres
-const TILE_ROW_GAP = 80; // vertical distance between tile centres
+const TILE_W = 72;           // logo width in points
+const LOGO_RATIO = 481 / 772; // height ÷ width from actual pixel dims (772×481)
+const TILE_H = TILE_W * LOGO_RATIO; // ~44.9pt — preserves aspect ratio
+const TILE_COL_GAP = 96;  // horizontal distance between tile centres
+const TILE_ROW_GAP = 72;  // vertical distance between tile centres
 
 function LogoTileGrid({
   areaW,
@@ -68,11 +70,10 @@ function LogoTileGrid({
 
   const tiles: React.ReactElement[] = [];
   for (let r = 0; r < rows; r++) {
-    // Stagger every other row by half a column gap for a brick-like pattern
     const stagger = r % 2 === 0 ? 0 : TILE_COL_GAP / 2;
     for (let c = 0; c < cols + 1; c++) {
-      const x = offsetX + c * TILE_COL_GAP - TILE_SIZE / 2 + stagger - TILE_COL_GAP / 2;
-      const y = offsetY + r * TILE_ROW_GAP - TILE_SIZE / 2;
+      const x = offsetX + c * TILE_COL_GAP - TILE_W / 2 + stagger - TILE_COL_GAP / 2;
+      const y = offsetY + r * TILE_ROW_GAP - TILE_H / 2;
       tiles.push(
         <Image
           key={`wm-${r}-${c}`}
@@ -81,8 +82,8 @@ function LogoTileGrid({
             position: 'absolute',
             top: y,
             left: x,
-            width: TILE_SIZE,
-            height: TILE_SIZE,
+            width: TILE_W,
+            height: TILE_H,
             opacity: 0.40,
           }}
         />

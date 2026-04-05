@@ -20,9 +20,11 @@ const MEMORYMINT_LOGO = path.join(process.cwd(), 'public', 'MemoryMint_Logo.png'
 
 // ── Logo watermark tile grid ─────────────────────────────────────────────────
 // Stamps small MemoryMint logos in a staggered brick pattern at 40% opacity.
-const TILE_SIZE = 52;    // logo size in points (~0.72")
-const TILE_COL_GAP = 90; // horizontal distance between tile centres
-const TILE_ROW_GAP = 80; // vertical distance between tile centres
+const TILE_W = 72;           // logo width in points
+const LOGO_RATIO = 481 / 772; // height ÷ width from actual pixel dims (772×481)
+const TILE_H = TILE_W * LOGO_RATIO; // ~44.9pt — preserves aspect ratio
+const TILE_COL_GAP = 96;  // horizontal distance between tile centres
+const TILE_ROW_GAP = 72;  // vertical distance between tile centres
 
 function LogoTileGrid({ areaW, areaH }: { areaW: number; areaH: number }) {
   const cols = Math.ceil(areaW / TILE_COL_GAP) + 1;
@@ -31,13 +33,13 @@ function LogoTileGrid({ areaW, areaH }: { areaW: number; areaH: number }) {
   for (let r = 0; r < rows; r++) {
     const stagger = r % 2 === 0 ? 0 : TILE_COL_GAP / 2;
     for (let c = 0; c < cols + 1; c++) {
-      const x = c * TILE_COL_GAP - TILE_SIZE / 2 + stagger - TILE_COL_GAP / 2;
-      const y = r * TILE_ROW_GAP - TILE_SIZE / 2;
+      const x = c * TILE_COL_GAP - TILE_W / 2 + stagger - TILE_COL_GAP / 2;
+      const y = r * TILE_ROW_GAP - TILE_H / 2;
       tiles.push(
         <Image
           key={`wm-${r}-${c}`}
           src={MEMORYMINT_LOGO}
-          style={{ position: 'absolute', top: y, left: x, width: TILE_SIZE, height: TILE_SIZE, opacity: 0.40 }}
+          style={{ position: 'absolute', top: y, left: x, width: TILE_W, height: TILE_H, opacity: 0.40 }}
         />
       );
     }
