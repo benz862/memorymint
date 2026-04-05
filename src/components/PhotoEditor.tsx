@@ -438,36 +438,6 @@ export default function PhotoEditor({
           style={{ touchAction: "none" }}
         />
 
-        {/* Crop ratio picker */}
-        <div className={styles.zoomRow} style={{ flexWrap: "wrap", gap: "0.3rem 0.4rem" }}>
-          <span className={styles.zoomLabel} style={{ flexShrink: 0 }}>📐 Ratio</span>
-          <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", flex: 1 }}>
-            {CROP_RATIOS.map((r) => (
-              <button
-                key={r.label}
-                onClick={() => {
-                  setCropAR(r.ar);
-                  setCrop(centeredCrop(r.ar));
-                  setPanX(0); setPanY(0);
-                }}
-                style={{
-                  padding: "0.2rem 0.45rem",
-                  fontSize: "0.68rem",
-                  borderRadius: "4px",
-                  border: `1.5px solid ${cropAR === r.ar ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)"}`,
-                  background: cropAR === r.ar ? "rgba(255,255,255,0.22)" : "transparent",
-                  color: cropAR === r.ar ? "#fff" : "rgba(255,255,255,0.65)",
-                  cursor: "pointer",
-                  fontWeight: cropAR === r.ar ? 700 : 400,
-                  transition: "all 0.15s",
-                }}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Zoom slider */}
         <div className={styles.zoomRow}>
           <span className={styles.zoomLabel}>🔍 Zoom</span>
@@ -487,7 +457,7 @@ export default function PhotoEditor({
         {/* Pan hint + Reset */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.5)", flex: 1 }}>
-            Drag outside crop box to pan image
+            Drag outside crop box to pan · crop corners to resize
           </span>
           <button
             className={styles.btnResetCrop}
@@ -508,6 +478,23 @@ export default function PhotoEditor({
 
         {/* Caption Controls */}
         <div className={styles.captionControls}>
+
+          {/* — Crop Ratio — lives here so it’s always visible */}
+          <div className={styles.captionControlGroup}>
+            <label className={styles.captionControlLabel}>📐 Crop Ratio</label>
+            <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+              {CROP_RATIOS.map((r) => (
+                <button
+                  key={r.label}
+                  onClick={() => { setCropAR(r.ar); setCrop(centeredCrop(r.ar)); setPanX(0); setPanY(0); }}
+                  className={`${styles.fontChip} ${cropAR === r.ar ? styles.fontChipActive : ""}`}
+                  style={{ padding: "0.2rem 0.4rem", fontSize: "0.68rem" }}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Frame Style */}
           <div className={styles.captionControlGroup}>
@@ -645,31 +632,44 @@ export default function PhotoEditor({
                 <CropPreviewImg imageSrc={imageSrc} crop={crop} zoom={zoom} />
               </div>
             );
+            const captionEl = caption.text ? (
+              <div style={polaroidCaptionStyle}>{caption.text}</div>
+            ) : null;
             if (fs === "classic") return (
-              <div style={{ border: "4px solid #111", boxShadow: "5px 5px 0 rgba(0,0,0,0.25)", display: "block", width: "100%" }}>
-                {photoBox}
+              <div>
+                <div style={{ border: "4px solid #111", boxShadow: "5px 5px 0 rgba(0,0,0,0.25)", width: "100%" }}>
+                  {photoBox}
+                </div>
+                {captionEl && <div style={{ ...polaroidCaptionStyle, color: "#ddd", marginTop: "4px" }}>{caption.text}</div>}
               </div>
             );
             if (fs === "square") return (
-              <div style={{ border: "3px solid #1a1a1a", boxShadow: "4px 4px 0 rgba(0,0,0,0.25)", aspectRatio: "1/1", overflow: "hidden", width: "100%" }}>
-                {photoBox}
+              <div>
+                <div style={{ border: "3px solid #1a1a1a", boxShadow: "4px 4px 0 rgba(0,0,0,0.25)", aspectRatio: "1/1", overflow: "hidden", width: "100%" }}>
+                  {photoBox}
+                </div>
+                {captionEl && <div style={{ ...polaroidCaptionStyle, color: "#ddd", marginTop: "4px" }}>{caption.text}</div>}
               </div>
             );
             if (fs === "float") return (
-              <div style={{ boxShadow: "6px 6px 0 rgba(0,0,0,0.22)", display: "block", width: "100%" }}>
-                {photoBox}
+              <div>
+                <div style={{ boxShadow: "6px 6px 0 rgba(0,0,0,0.22)", width: "100%" }}>
+                  {photoBox}
+                </div>
+                {captionEl && <div style={{ ...polaroidCaptionStyle, color: "#ddd", marginTop: "4px" }}>{caption.text}</div>}
               </div>
             );
             if (fs === "naked") return (
-              <div style={{ width: "100%" }}>{photoBox}</div>
+              <div>
+                <div style={{ width: "100%" }}>{photoBox}</div>
+                {captionEl && <div style={{ ...polaroidCaptionStyle, color: "#ddd", marginTop: "4px" }}>{caption.text}</div>}
+              </div>
             );
             // polaroid (default)
             return (
               <div className={styles.polaroidPreviewLarge}>
                 {photoBox}
-                {caption.text && (
-                  <div style={polaroidCaptionStyle}>{caption.text}</div>
-                )}
+                {captionEl}
               </div>
             );
           })()}

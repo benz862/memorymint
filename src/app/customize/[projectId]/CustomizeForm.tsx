@@ -176,6 +176,7 @@ export default function CustomizeForm({
                   {/* Frame-aware preview — mirrors the choice made in PhotoEditor */}
                   {(() => {
                     const fs = captionStyle?.frameStyle ?? "polaroid";
+                    // All frames live inside a padded wrapper so they don't fill edge-to-edge
                     const imgEl = (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={croppedDataUrl} alt="Your photo" style={{ display: "block", width: "100%", objectFit: "cover" }} />
@@ -195,31 +196,41 @@ export default function CustomizeForm({
                       }}>{captionStyle.text}</div>
                     ) : null;
 
-                    if (fs === "classic") return (
-                      <div style={{ border: "3px solid #111", boxShadow: "4px 4px 0 rgba(0,0,0,0.22)", width: "100%" }}>
-                        {imgEl}
-                      </div>
-                    );
-                    if (fs === "square") return (
-                      <div style={{ border: "2px solid #1a1a1a", boxShadow: "4px 4px 0 rgba(0,0,0,0.22)", aspectRatio: "1/1", overflow: "hidden", width: "100%" }}>
-                        {imgEl}
-                      </div>
-                    );
-                    if (fs === "float") return (
-                      <div style={{ boxShadow: "5px 5px 0 rgba(0,0,0,0.18)", width: "100%" }}>
-                        {imgEl}
-                      </div>
-                    );
-                    if (fs === "naked") return (
-                      <div style={{ width: "100%" }}>{imgEl}</div>
-                    );
-                    // polaroid (default)
-                    return (
-                      <div className={styles.polaroidInPreview}>
-                        {imgEl}
-                        {captionEl}
-                      </div>
-                    );
+                    const inner = (() => {
+                      if (fs === "classic") return (
+                        <div>
+                          <div style={{ border: "3px solid #111", boxShadow: "4px 4px 0 rgba(0,0,0,0.22)" }}>{imgEl}</div>
+                          {captionEl}
+                        </div>
+                      );
+                      if (fs === "square") return (
+                        <div>
+                          <div style={{ border: "2px solid #1a1a1a", boxShadow: "4px 4px 0 rgba(0,0,0,0.22)", aspectRatio: "1/1", overflow: "hidden" }}>{imgEl}</div>
+                          {captionEl}
+                        </div>
+                      );
+                      if (fs === "float") return (
+                        <div>
+                          <div style={{ boxShadow: "5px 5px 0 rgba(0,0,0,0.18)" }}>{imgEl}</div>
+                          {captionEl}
+                        </div>
+                      );
+                      if (fs === "naked") return (
+                        <div>
+                          {imgEl}
+                          {captionEl}
+                        </div>
+                      );
+                      // polaroid (default)
+                      return (
+                        <div className={styles.polaroidInPreview}>
+                          {imgEl}
+                          {captionEl}
+                        </div>
+                      );
+                    })();
+
+                    return <div style={{ padding: "0 12px", width: "100%" }}>{inner}</div>;
                   })()}
                   <button className={styles.changePhotoBtn} onClick={() => setPhotoStage("editing")}>
                     ✏️ Edit photo
