@@ -14,8 +14,40 @@ import { registerPdfFonts, pdfFontStyle } from '@/lib/pdfFonts';
 
 registerPdfFonts();
 
-// Polaroid frame PNG — same constants as DesignedCardDocument
+// Polaroid frame PNG & MemoryMint logo for watermark tiling
 const POLAROID_FRAME = path.join(process.cwd(), 'public', 'polaroid photo frame.png');
+const MEMORYMINT_LOGO = path.join(process.cwd(), 'public', 'MemoryMint_Logo.png');
+
+// ── Logo watermark tile grid ─────────────────────────────────────────────────
+// Stamps small MemoryMint logos in a staggered brick pattern at 40% opacity.
+const TILE_SIZE = 52;    // logo size in points (~0.72")
+const TILE_COL_GAP = 90; // horizontal distance between tile centres
+const TILE_ROW_GAP = 80; // vertical distance between tile centres
+
+function LogoTileGrid({ areaW, areaH }: { areaW: number; areaH: number }) {
+  const cols = Math.ceil(areaW / TILE_COL_GAP) + 1;
+  const rows = Math.ceil(areaH / TILE_ROW_GAP) + 1;
+  const tiles: React.ReactElement[] = [];
+  for (let r = 0; r < rows; r++) {
+    const stagger = r % 2 === 0 ? 0 : TILE_COL_GAP / 2;
+    for (let c = 0; c < cols + 1; c++) {
+      const x = c * TILE_COL_GAP - TILE_SIZE / 2 + stagger - TILE_COL_GAP / 2;
+      const y = r * TILE_ROW_GAP - TILE_SIZE / 2;
+      tiles.push(
+        <Image
+          key={`wm-${r}-${c}`}
+          src={MEMORYMINT_LOGO}
+          style={{ position: 'absolute', top: y, left: x, width: TILE_SIZE, height: TILE_SIZE, opacity: 0.40 }}
+        />
+      );
+    }
+  }
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, width: areaW, height: areaH, overflow: 'hidden' }}>
+      {tiles}
+    </View>
+  );
+}
 const POLAROID_RATIO = 6442 / 7997;
 const PL = 0.055;
 const PT = 0.04;
@@ -109,10 +141,11 @@ function PrintMarks({
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const LOGO_URL = `${APP_URL}/SkillBinder_Logo.png`;
 
+// 60% gray
+const BACK_COVER_TEXT_COLOR = '#666666';
+
 function BackCover({ panelW, panelH }: { panelW: number; panelH: number }) {
-  const logoSize = panelW * 0.165; // 25% smaller than original 0.22
-  const centerX = panelW / 2;
-  const logoTop = panelH * 0.65;  // 65% down
+  const logoSize = panelW * 0.165;
 
   return (
     <View
@@ -127,33 +160,11 @@ function BackCover({ panelW, panelH }: { panelW: number; panelH: number }) {
         paddingBottom: panelH * 0.12,
       }}
     >
-      {/* Logo */}
-      <Image
-        src={LOGO_URL}
-        style={{ width: logoSize, height: logoSize, marginBottom: 10 }}
-      />
-      {/* Tagline */}
-      <Text
-        style={{
-          fontSize: 7,
-          color: '#555555',
-          fontFamily: 'Helvetica',
-          textAlign: 'center',
-          marginBottom: 3,
-          maxWidth: panelW * 0.68,
-        }}
-      >
+      <Image src={LOGO_URL} style={{ width: logoSize, height: logoSize, marginBottom: 10 }} />
+      <Text style={{ fontSize: 7, color: BACK_COVER_TEXT_COLOR, fontFamily: 'Helvetica', textAlign: 'center', marginBottom: 3, maxWidth: panelW * 0.68 }}>
         Part of the SkillBinder collection of life-ready guides and designs.
       </Text>
-      {/* Copyright */}
-      <Text
-        style={{
-          fontSize: 6.5,
-          color: '#777777',
-          fontFamily: 'Helvetica',
-          textAlign: 'center',
-        }}
-      >
+      <Text style={{ fontSize: 6.5, color: BACK_COVER_TEXT_COLOR, fontFamily: 'Helvetica', textAlign: 'center' }}>
         © SkillBinder. All rights reserved.
       </Text>
     </View>
@@ -173,17 +184,6 @@ const styles = StyleSheet.create({
     lineHeight: 1.7,
     color: '#3D3530',
     fontFamily: 'Helvetica',
-  },
-  watermark: {
-    position: 'absolute',
-    top: '35%',
-    left: '5%',
-    right: 0,
-    fontSize: 36,
-    color: 'rgba(200,200,200,0.3)',
-    transform: 'rotate(-40deg)',
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'center',
   },
   polaroidWrapper: {
     backgroundColor: '#FFFFFF',
@@ -320,16 +320,17 @@ export const CardDocument = ({
       {/* ── PAGE 1: OUTER SPREAD (Back | Front) ────────────── */}
       <Page size={[LETTER_W, LETTER_H] as any} style={styles.page}>
 
-        {/* Back panel — logo/artwork: left/top/bottom bleed shows; fold-side clipped */}
+        {/* Panel 4: Back panel */}
         <View style={backPanelStyle}>
           {backImageBase64 ? (
             <Image src={backImageBase64} style={{ position: 'absolute', top: 0, left: 0, width: imgW, height: imgH }} />
           ) : (
             <BackCover panelW={panelW + BLEED} panelH={cardH + BLEED * 2} />
           )}
+          {isWatermarked && <LogoTileGrid areaW={panelW + BLEED} areaH={cardH + BLEED * 2} />}
         </View>
 
-        {/* Front panel — image offset -BLEED so fold-side bleed is clipped by overflow:hidden */}
+        {/* Panel 1: Front panel */}
         <View style={frontPanelStyle}>
           {frontImageBase64 ? (
             <Image src={frontImageBase64} style={{ position: 'absolute', top: 0, left: -BLEED, width: imgW, height: imgH }} />
@@ -338,16 +339,16 @@ export const CardDocument = ({
               <Text style={{ fontSize: 12, color: '#A09088', fontFamily: 'Helvetica' }}>Card Front</Text>
             </View>
           )}
+          {isWatermarked && <LogoTileGrid areaW={panelW + BLEED} areaH={cardH + BLEED * 2} />}
         </View>
 
-        {/* Trim & fold marks */}
         <PrintMarks cardX={cardX} cardY={cardY} cardW={cardW} cardH={cardH} midX={midX} />
       </Page>
 
       {/* ── PAGE 2: INNER SPREAD (Photo | Message) ─────────── */}
       <Page size={[LETTER_W, LETTER_H] as any} style={styles.page}>
 
-        {/* Inside-left: pure white, polaroid photo + caption */}
+        {/* Panel 2: Inside-left — photo panel */}
         <View style={{ ...innerPanelBase, left: cardX, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {insidePhotoBase64 ? (() => {
             const cs = parseCaptionStyle(insidePhotoCaption);
@@ -359,32 +360,10 @@ export const CardDocument = ({
             const pTall = polH * PH;
             return (
               <View style={{ width: polW, height: polH }}>
-                {/* Layer 1 — user photo */}
-                <Image
-                  src={insidePhotoBase64}
-                  style={{
-                    position: 'absolute',
-                    top: pTop, left: pLeft,
-                    width: pWide, height: pTall,
-                    objectFit: 'cover' as any,
-                  }}
-                />
-                {/* Layer 2 — polaroid frame */}
-                <Image
-                  src={POLAROID_FRAME}
-                  style={{ position: 'absolute', top: 0, left: 0, width: polW, height: polH }}
-                />
-                {/* Layer 3 — caption */}
+                <Image src={insidePhotoBase64} style={{ position: 'absolute', top: pTop, left: pLeft, width: pWide, height: pTall, objectFit: 'cover' as any }} />
+                <Image src={POLAROID_FRAME} style={{ position: 'absolute', top: 0, left: 0, width: polW, height: polH }} />
                 {cs?.text ? (
-                  <Text style={{
-                    position: 'absolute',
-                    top: polH * CAPTION_T,
-                    left: pLeft, width: pWide,
-                    fontSize: Math.max(8, Math.min(cs.fontSize ?? 9, 20)),
-                    fontFamily: cs.italic ? 'Helvetica-Oblique' : 'Helvetica',
-                    color: cs.color ?? '#6B6360',
-                    textAlign: (cs.align ?? 'center') as any,
-                  } as any}>
+                  <Text style={{ position: 'absolute', top: polH * CAPTION_T, left: pLeft, width: pWide, fontSize: Math.max(8, Math.min(cs.fontSize ?? 9, 20)), fontFamily: cs.italic ? 'Helvetica-Oblique' : 'Helvetica', color: cs.color ?? '#6B6360', textAlign: (cs.align ?? 'center') as any } as any}>
                     {cs.text}
                   </Text>
                 ) : null}
@@ -393,30 +372,22 @@ export const CardDocument = ({
           })() : (
             <View />
           )}
+          {isWatermarked && <LogoTileGrid areaW={panelW} areaH={cardH} />}
         </View>
 
-        {/* Inside-right: message in chosen font + italic signature */}
+        {/* Panel 3: Inside-right — message */}
         <View style={messagePanelStyle}>
           <Text style={[styles.messageText, { fontSize: messageFontSize, ...pdfFontStyle(messageFontFamily) }] as any}>
             {message}
           </Text>
           {senderName ? (
-            <Text style={{
-              marginTop: 18,
-              fontSize: messageFontSize - 2,
-              ...pdfFontStyle(messageFontFamily, false, true),
-              color: '#6B6360',
-              textAlign: 'right',
-            } as any}>
+            <Text style={{ marginTop: 18, fontSize: messageFontSize - 2, ...pdfFontStyle(messageFontFamily, false, true), color: '#6B6360', textAlign: 'right' } as any}>
               — {senderName}
             </Text>
           ) : null}
-          {isWatermarked && (
-            <Text style={styles.watermark}>PREVIEW • MemoryMint</Text>
-          )}
+          {isWatermarked && <LogoTileGrid areaW={panelW} areaH={cardH} />}
         </View>
 
-        {/* Trim & fold marks */}
         <PrintMarks cardX={cardX} cardY={cardY} cardW={cardW} cardH={cardH} midX={midX} />
       </Page>
 
