@@ -73,6 +73,15 @@ export async function GET(
 
       // Back image not used — DesignedCardDocument renders the
       // SkillBinder logo programmatically on a white back cover.
+      // Extract frame style from caption JSON (stored by PhotoEditor)
+      let captionFrameStyle = 'polaroid';
+      if (insidePhotoCaption) {
+        try {
+          const cp = JSON.parse(insidePhotoCaption);
+          if (cp?.frameStyle) captionFrameStyle = cp.frameStyle;
+        } catch { /* ignore */ }
+      }
+
       pdfBuffer = await renderToBuffer(
         React.createElement(DesignedCardDocument, {
           frontImageBase64: frontImageUrl,
@@ -84,6 +93,7 @@ export async function GET(
           senderName,
           size,
           isWatermarked,
+          frameStyle: captionFrameStyle,
         }) as any
       );
     } else {
