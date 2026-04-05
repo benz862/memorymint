@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
+    const stripeKey = (process.env.STRIPE_SECRET_KEY ?? '').trim().replace(/[\r\n\t]/g, '');
     const isMock = !stripeKey || stripeKey.includes('dummy') || stripeKey.includes('test_dummy');
 
     if (isMock) {

@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
+    const stripeKey = (process.env.STRIPE_SECRET_KEY ?? '').trim().replace(/[\r\n\t]/g, '');
     const isMock = !stripeKey || stripeKey.includes('dummy') || stripeKey.includes('test_dummy');
 
     if (isMock) {
@@ -50,6 +50,7 @@ export async function POST(req: Request) {
     }
 
     // Initialise Stripe inside the handler so it always picks up the live env var
+    // Sanitise key — remove any hidden newline/space that causes ERR_INVALID_CHAR
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2026-03-25.dahlia',
     });

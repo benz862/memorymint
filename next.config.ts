@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     '*': ['./public/cards/**/*'],
   },
+  // Disable client-side Router Cache for dynamic pages so navigating between
+  // different card slugs always loads fresh data (fixes "wrong card" bug).
+  experimental: {
+    staleTimes: {
+      dynamic: 0,
+    },
+  },
 };
 
 export default nextConfig;
