@@ -48,7 +48,7 @@ export default async function PreviewPage({ params }: { params: { projectId: str
           </p>
 
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.2rem", borderBottom: "1px solid var(--border)", paddingBottom: "1rem", marginBottom: "1.5rem" }}>
-            <span>{project.selected_size} Premium Asset</span>
+            <span>{project.selected_size === '5x7' ? '5×7"' : '4×6"'} Greeting Card PDF</span>
             <span style={{ fontWeight: "bold" }}>${price.toFixed(2)}</span>
           </div>
 
