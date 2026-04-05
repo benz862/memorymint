@@ -173,25 +173,54 @@ export default function CustomizeForm({
             <div className={styles.cardPanel} style={{ borderRight: "1px solid #e8e0da" }}>
               {croppedDataUrl ? (
                 <>
-                  <div className={styles.polaroidInPreview}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={croppedDataUrl} alt="Your photo" />
-                    {captionStyle?.text && (
-                      <div
-                        className={styles.polaroidCaption}
-                        style={{
-                          fontFamily: `'${captionStyle.fontFamily}', serif`,
-                          fontSize: `${captionStyle.fontSize * 0.85}px`,
-                          color: captionStyle.color,
-                          textAlign: captionStyle.align as any,
-                          fontWeight: captionStyle.bold ? 700 : 400,
-                          fontStyle: captionStyle.italic ? "italic" : "normal",
-                        }}
-                      >
-                        {captionStyle.text}
+                  {/* Frame-aware preview — mirrors the choice made in PhotoEditor */}
+                  {(() => {
+                    const fs = captionStyle?.frameStyle ?? "polaroid";
+                    const imgEl = (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={croppedDataUrl} alt="Your photo" style={{ display: "block", width: "100%", objectFit: "cover" }} />
+                    );
+                    const captionEl = captionStyle?.text ? (
+                      <div style={{
+                        fontFamily: captionStyle.fontFamily,
+                        fontSize: `${captionStyle.fontSize * 0.85}px`,
+                        color: captionStyle.color,
+                        textAlign: captionStyle.align as any,
+                        fontWeight: captionStyle.bold ? 700 : 400,
+                        fontStyle: captionStyle.italic ? "italic" : "normal",
+                        marginTop: "4px",
+                        padding: "0 2px",
+                        wordBreak: "break-word",
+                        lineHeight: 1.3,
+                      }}>{captionStyle.text}</div>
+                    ) : null;
+
+                    if (fs === "classic") return (
+                      <div style={{ border: "3px solid #111", boxShadow: "4px 4px 0 rgba(0,0,0,0.22)", width: "100%" }}>
+                        {imgEl}
                       </div>
-                    )}
-                  </div>
+                    );
+                    if (fs === "square") return (
+                      <div style={{ border: "2px solid #1a1a1a", boxShadow: "4px 4px 0 rgba(0,0,0,0.22)", aspectRatio: "1/1", overflow: "hidden", width: "100%" }}>
+                        {imgEl}
+                      </div>
+                    );
+                    if (fs === "float") return (
+                      <div style={{ boxShadow: "5px 5px 0 rgba(0,0,0,0.18)", width: "100%" }}>
+                        {imgEl}
+                      </div>
+                    );
+                    if (fs === "naked") return (
+                      <div style={{ width: "100%" }}>{imgEl}</div>
+                    );
+                    // polaroid (default)
+                    return (
+                      <div className={styles.polaroidInPreview}>
+                        {imgEl}
+                        {captionEl}
+                      </div>
+                    );
+                  })()}
                   <button className={styles.changePhotoBtn} onClick={() => setPhotoStage("editing")}>
                     ✏️ Edit photo
                   </button>
