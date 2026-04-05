@@ -63,7 +63,8 @@ export async function POST(req: Request) {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://memorymint.app').replace(/\/$/, '');
+    // Trim whitespace/newlines — NEXT_PUBLIC_APP_URL in Vercel has a trailing \n
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://memorymint.app').trim().replace(/\/$/, '');
 
     const successUrl = `${appUrl}/success/${order.id}`;
     const cancelUrl = `${appUrl}/preview/${projectId}`;

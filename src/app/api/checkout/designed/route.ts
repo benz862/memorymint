@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://memorymint.app').replace(/\/$/, '');
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://memorymint.app').trim().replace(/\/$/, '');
 
     // Strip ALL control/non-printable chars that cause ERR_INVALID_CHAR in HTTP headers
     const stripeKey = (process.env.STRIPE_SECRET_KEY ?? '')
